@@ -2,13 +2,8 @@
 
 A modern cycle-tracking app: sign in with Google, set your cycle length, and get a simple “under construction” app experience. Built with React/Vite/Tailwind (frontend), FastAPI (backend), PostgreSQL, and Redis, orchestrated with Docker Compose.
 
-## Palette
+![Welcome screen](docs/assets/welcome.png)
 
-- **Night Bordeaux** `#461220`
-- **Burnt Rose** `#8c2f39`
-- **Dusty Mauve** `#b23a48`
-- **Powder Blush** `#fcb9b2`
-- **Peach Fuzz** `#fed0bb`
 
 ## Quick start
 
@@ -50,6 +45,14 @@ All in **docs/**:
 4. [04-database-and-onboarding.md](docs/04-database-and-onboarding.md) — PostgreSQL schema and onboarding API.
 5. [05-docker-and-ci.md](docs/05-docker-and-ci.md) — Docker Compose and GitHub Actions CI.
 6. [06-pre-commit.md](docs/06-pre-commit.md) — Pre-commit hooks and usage.
+
+## Palette
+
+- **Night Bordeaux** `#461220`
+- **Burnt Rose** `#8c2f39`
+- **Dusty Mauve** `#b23a48`
+- **Powder Blush** `#fcb9b2`
+- **Peach Fuzz** `#fed0bb`
 
 ## License
 
