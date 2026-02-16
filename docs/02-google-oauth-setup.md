@@ -16,23 +16,23 @@ So: **we never handle the password**; we only get confirmation from Google that 
 
 ## Create a Google Cloud project and OAuth client
 
-1. **Open Google Cloud Console**  
+1. **Open Google Cloud Console**
    Go to [https://console.cloud.google.com/](https://console.cloud.google.com/).
 
-2. **Create or select a project**  
+2. **Create or select a project**
    Use the project dropdown at the top. Click “New Project,” give it a name (e.g. “Aestas”), and create it.
 
-3. **Enable the Google+ API (or People API)**  
+3. **Enable the Google+ API (or People API)**
    In the left menu: **APIs & Services → Library**. Search for “Google+ API” or “Google People API” and enable it. (For basic email/profile, “Google People API” or the OAuth consent screen is enough.)
 
-4. **Configure the OAuth consent screen**  
+4. **Configure the OAuth consent screen**
    - Go to **APIs & Services → OAuth consent screen**.
    - Choose **External** (so any Google user can sign in).
    - Fill in App name (e.g. “Aestas”), User support email, and Developer contact.
    - Under **Scopes**, add `.../auth/userinfo.email` and `.../auth/userinfo.profile` (and `openid` if listed).
    - Save. You can add “Test users” during development if the app is in “Testing” mode.
 
-5. **Create OAuth 2.0 credentials**  
+5. **Create OAuth 2.0 credentials**
    - Go to **APIs & Services → Credentials**.
    - Click **Create credentials → OAuth client ID**.
    - Application type: **Web application**.
@@ -45,7 +45,7 @@ So: **we never handle the password**; we only get confirmation from Google that 
      - For production: `https://yourdomain.com/auth/callback` (or whatever URL actually hits your backend callback).
    - Create. You’ll get a **Client ID** and **Client Secret**.
 
-6. **Use them in the app**  
+6. **Use them in the app**
    - In the project root, create a `.env` file (or set environment variables):
      - `GOOGLE_CLIENT_ID=...`
      - `GOOGLE_CLIENT_SECRET=...`

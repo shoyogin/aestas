@@ -5,7 +5,6 @@ import redis
 from config import settings
 
 # Import after database so Base is defined
-from models import User  # noqa: E402
 
 redis_client = redis.from_url(settings.redis_url, decode_responses=True)
 SESSION_PREFIX = "session:"

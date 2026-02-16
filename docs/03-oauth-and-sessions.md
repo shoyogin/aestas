@@ -4,22 +4,22 @@ This doc explains how the “Sign in with Google” flow is implemented in the b
 
 ## Flow in steps
 
-1. **User clicks “Sign in with Google”**  
+1. **User clicks “Sign in with Google”**
    The frontend sends the user to the backend at `GET http://localhost:8000/auth/google` (or whatever `VITE_API_URL` is set to).
 
-2. **Backend starts the OAuth flow**  
+2. **Backend starts the OAuth flow**
    In `main.py`, `auth_google`:
    - Builds the **redirect URI** where Google will send the user back (e.g. `http://localhost/auth/callback`).
    - Generates a random **state** (to prevent CSRF) and stores it in a cookie.
    - Builds Google’s authorization URL (client ID, scopes, redirect URI, state) and **redirects the browser** to Google.
 
-3. **User logs in on Google**  
+3. **User logs in on Google**
    Google shows its login page. We never see the password.
 
-4. **Google redirects back to our backend**  
+4. **Google redirects back to our backend**
    Google sends the user to our redirect URI with a **code** (one-time) and the **state** we sent.
 
-5. **Backend handles the callback** (`GET /auth/callback`)  
+5. **Backend handles the callback** (`GET /auth/callback`)
    In `main.py`, `auth_callback`:
    - Checks that the `state` matches the one in the cookie (CSRF check).
    - Calls `exchange_code_for_user(code, redirect_uri)` in `auth.py`:
@@ -29,7 +29,7 @@ This doc explains how the “Sign in with Google” flow is implemented in the b
      - Creates a **session** in Redis (see below) and gets back a **session token**.
    - **Redirects** the browser to the frontend (`/onboarding` or `/app`) and **sets a cookie** named `session` with the session token (HttpOnly, SameSite=Lax, 7-day expiry).
 
-6. **Frontend knows who’s logged in**  
+6. **Frontend knows who’s logged in**
    The frontend calls `GET http://localhost:8000/auth/me` (with credentials). The browser sends the `session` cookie (set by the backend on port 8000). The backend reads the cookie, looks up the session in Redis, and returns user info (e.g. `has_completed_onboarding`). No password or Google token is stored in the frontend; only the session cookie is used.
 
 ## Why we use Redis for sessions

@@ -45,17 +45,17 @@ Only **staged** (or, for “run all,” all) files are passed to the hooks when 
 
 ## Useful commands
 
-- **Run on staged files** (default when you commit):  
+- **Run on staged files** (default when you commit):
   Happens automatically on `git commit`.
 
-- **Run on all files** (e.g. after adding the config):  
+- **Run on all files** (e.g. after adding the config):
   `pre-commit run --all-files`
 
-- **Run a single hook**:  
-  `pre-commit run ruff --all-files`  
+- **Run a single hook**:
+  `pre-commit run ruff --all-files`
   `pre-commit run eslint --all-files`
 
-- **Update hook versions**:  
+- **Update hook versions**:
   `pre-commit autoupdate`
 
 ## If a hook fails

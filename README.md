@@ -12,17 +12,17 @@ A modern cycle-tracking app: sign in with Google, set your cycle length, and get
 
 ## Quick start
 
-1. **Google OAuth**  
+1. **Google OAuth**
    Create an OAuth 2.0 Client in [Google Cloud Console](https://console.cloud.google.com/) and set **Authorized redirect URI** to `http://localhost:8000/auth/callback`. See [docs/02-google-oauth-setup.md](docs/02-google-oauth-setup.md).
 
-2. **Environment**  
+2. **Environment**
    Copy `.env.example` to `.env` in the project root and set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
 
 3. **Run**
    ```bash
    docker compose up --build
    ```
-   Frontend: **http://localhost:5173** · Backend: **http://localhost:8000** (Postgres + Redis start with them).  
+   Frontend: **http://localhost:5173** · Backend: **http://localhost:8000** (Postgres + Redis start with them).
    Open the frontend URL, sign in with Google → Onboarding (cycle length) → WIP page.
 
 ## Project structure

@@ -10,7 +10,6 @@ from database import get_db, engine, Base
 from models import User
 from auth import get_google_authorize_url, exchange_code_for_user
 from session import get_session
-from dependencies import get_current_user
 from routers import users
 
 # Create tables on startup (for dev; in production use migrations)
