@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import Welcome from './components/Welcome'
 import Onboarding from './components/Onboarding'
+import Blooming from './components/Blooming'
 import WIP from './components/WIP'
 
 function App() {
@@ -27,6 +28,16 @@ function App() {
             ) : (
               <Onboarding />
             )
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
+      />
+      <Route
+        path="/blooming"
+        element={
+          isAuthenticated ? (
+            <Blooming />
           ) : (
             <Navigate to="/" replace />
           )

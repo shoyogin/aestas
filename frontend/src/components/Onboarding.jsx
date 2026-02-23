@@ -2,23 +2,46 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { submitOnboarding } from '../api/onboarding'
 
-const CYCLE_LENGTH_MIN = 21
+const CYCLE_LENGTH_MIN = 15
 const CYCLE_LENGTH_MAX = 45
 const DEFAULT_CYCLE_LENGTH = 28
+
+function clamp(value) {
+  return Math.min(CYCLE_LENGTH_MAX, Math.max(CYCLE_LENGTH_MIN, Number(value) || DEFAULT_CYCLE_LENGTH))
+}
 
 export default function Onboarding() {
   const navigate = useNavigate()
   const [cycleLength, setCycleLength] = useState(DEFAULT_CYCLE_LENGTH)
+  const [inputValue, setInputValue] = useState(String(DEFAULT_CYCLE_LENGTH))
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState(null)
+
+  const syncFromInput = (raw) => {
+    setInputValue(raw)
+    const num = Number(raw)
+    if (!Number.isNaN(num) && raw !== '') {
+      setCycleLength(clamp(num))
+    }
+  }
+
+  const setDays = (n) => {
+    const clamped = clamp(n)
+    setCycleLength(clamped)
+    setInputValue(String(clamped))
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
+    const num = Number(inputValue)
+    const valueToSubmit = Number.isNaN(num) || inputValue === '' ? cycleLength : clamp(num)
+    setCycleLength(valueToSubmit)
+    setInputValue(String(valueToSubmit))
     setIsSubmitting(true)
     try {
-      await submitOnboarding(cycleLength)
-      navigate('/app', { replace: true })
+      await submitOnboarding(valueToSubmit)
+      navigate('/blooming', { replace: true, state: { cycleLength: valueToSubmit } })
     } catch (err) {
       setError(err.response?.data?.detail || 'Something went wrong. Please try again.')
     } finally {
@@ -28,7 +51,7 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-night-bordeaux">
-      <div className="max-w-lg w-full">
+      <div className="max-w-lg w-full text-center">
         <h1 className="text-3xl font-bold text-peach-fuzz mb-2">
           Almost there
         </h1>
@@ -40,29 +63,45 @@ export default function Onboarding() {
           <div>
             <label
               htmlFor="cycle-length"
-              className="block text-sm font-medium text-powder-blush mb-2"
+              className="block text-m font-bold text-powder-blush mb-3"
             >
               How many days is your typical cycle?
             </label>
-            <input
-              id="cycle-length"
-              type="number"
-              min={CYCLE_LENGTH_MIN}
-              max={CYCLE_LENGTH_MAX}
-              value={cycleLength}
-              onChange={(e) =>
-                setCycleLength(
-                  Math.min(
-                    CYCLE_LENGTH_MAX,
-                    Math.max(CYCLE_LENGTH_MIN, Number(e.target.value) || DEFAULT_CYCLE_LENGTH)
-                  )
-                )
-              }
-              className="w-full rounded-xl border-2 border-dusty-mauve/50 bg-night-bordeaux/80 text-peach-fuzz px-4 py-3 focus:border-powder-blush focus:ring-2 focus:ring-powder-blush/20 outline-none transition"
-            />
-            <p className="mt-1 text-sm text-powder-blush/70">
-              Between {CYCLE_LENGTH_MIN} and {CYCLE_LENGTH_MAX} days
-            </p>
+            <div className="flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setDays(cycleLength - 1)}
+                disabled={cycleLength <= CYCLE_LENGTH_MIN}
+                className="flex-shrink-0 w-12 h-12 rounded-xl bg-dusty-mauve/40 hover:bg-dusty-mauve/60 disabled:opacity-40 disabled:pointer-events-none text-peach-fuzz font-medium text-xl transition-colors focus:outline-none focus:ring-2 focus:ring-powder-blush/50"
+                aria-label="Decrease days"
+              >
+                −
+              </button>
+              <input
+                id="cycle-length"
+                type="number"
+                min={CYCLE_LENGTH_MIN}
+                max={CYCLE_LENGTH_MAX}
+                value={inputValue}
+                onChange={(e) => syncFromInput(e.target.value)}
+                onBlur={() => {
+                  const num = Number(inputValue)
+                  const clamped = Number.isNaN(num) || inputValue === '' ? DEFAULT_CYCLE_LENGTH : clamp(num)
+                  setCycleLength(clamped)
+                  setInputValue(String(clamped))
+                }}
+                className="flex-1 min-w-0 rounded-xl border-2 border-dusty-mauve/50 bg-night-bordeaux/80 text-peach-fuzz text-center text-2xl font-semibold tabular-nums py-4 px-4 focus:border-powder-blush focus:ring-2 focus:ring-powder-blush/20 outline-none transition placeholder:text-powder-blush/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <button
+                type="button"
+                onClick={() => setDays(cycleLength + 1)}
+                disabled={cycleLength >= CYCLE_LENGTH_MAX}
+                className="flex-shrink-0 w-12 h-12 rounded-xl bg-dusty-mauve/40 hover:bg-dusty-mauve/60 disabled:opacity-40 disabled:pointer-events-none text-peach-fuzz font-medium text-xl transition-colors focus:outline-none focus:ring-2 focus:ring-powder-blush/50"
+                aria-label="Increase days"
+              >
+                +
+              </button>
+            </div>
           </div>
 
           <div
