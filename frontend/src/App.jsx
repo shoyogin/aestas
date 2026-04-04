@@ -2,8 +2,9 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import Welcome from './components/Welcome'
 import Onboarding from './components/Onboarding'
+import LastCycle from './components/LastCycle'
 import Blooming from './components/Blooming'
-import WIP from './components/WIP'
+import Main from './components/Main'
 
 function App() {
   const { isAuthenticated, isLoading, hasCompletedOnboarding } = useAuth()
@@ -34,6 +35,16 @@ function App() {
         }
       />
       <Route
+        path="/onboarding/last-cycle"
+        element={
+          isAuthenticated ? (
+            <LastCycle />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
+      />
+      <Route
         path="/blooming"
         element={
           isAuthenticated ? (
@@ -47,7 +58,7 @@ function App() {
         path="/app"
         element={
           isAuthenticated ? (
-            <WIP />
+            <Main />
           ) : (
             <Navigate to="/" replace />
           )

@@ -41,7 +41,7 @@ export default function Onboarding() {
     setIsSubmitting(true)
     try {
       await submitOnboarding(valueToSubmit)
-      navigate('/blooming', { replace: true, state: { cycleLength: valueToSubmit } })
+      navigate('/onboarding/last-cycle', { replace: true, state: { cycleLength: valueToSubmit } })
     } catch (err) {
       setError(err.response?.data?.detail || 'Something went wrong. Please try again.')
     } finally {

@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from config import settings
-from database import get_db, engine, Base
+from database import get_db, engine, Base, add_user_cycle_aggregate_columns_if_missing, migrate_user_cycle_history_arrays
 from models import User
 from auth import get_google_authorize_url, exchange_code_for_user
 from session import get_session
@@ -14,6 +14,8 @@ from routers import users
 
 # Create tables on startup (for dev; in production use migrations)
 Base.metadata.create_all(bind=engine)
+add_user_cycle_aggregate_columns_if_missing()
+migrate_user_cycle_history_arrays()
 
 app = FastAPI(title=settings.app_name)
 
@@ -95,6 +97,7 @@ async def auth_me(request: Request, db: Session = Depends(get_db)):
         "id": user.id,
         "email": user.email,
         "has_completed_onboarding": user.has_completed_onboarding,
+        "awaiting_period_end": bool(getattr(user, "awaiting_period_end", False)),
     }
 
 
