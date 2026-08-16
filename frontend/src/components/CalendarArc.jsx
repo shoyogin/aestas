@@ -1,3 +1,5 @@
+import { CALENDAR_WIDTH, toYMD, endOfMonth, getMonthGrid } from '../cycle/dates'
+
 const FLOW_DAY_STYLE = {
   spots: { backgroundColor: '#fcb9b2', color: '#461220' },
   light: { backgroundColor: '#b23a48', color: '#fed0bb' },
@@ -7,44 +9,7 @@ const FLOW_DAY_STYLE = {
 
 const DEFAULT_DAY_STYLE = { backgroundColor: '#fed0bb', color: '#461220' }
 const OUTSIDE_DAY_STYLE = { backgroundColor: '#fed0bb', color: '#461220' }
-
-export const CALENDAR_WIDTH = 'mx-auto w-full max-w-[400px]'
-
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-
-export function toYMD(d) {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
-
-export function addDays(d, n) {
-  const out = new Date(d)
-  out.setDate(out.getDate() + n)
-  return out
-}
-
-export function startOfMonth(d) {
-  return new Date(d.getFullYear(), d.getMonth(), 1)
-}
-
-export function endOfMonth(d) {
-  return new Date(d.getFullYear(), d.getMonth() + 1, 0)
-}
-
-/** Sunday-start grid covering the month (padding days from adjacent months). */
-export function getMonthGrid(viewDate) {
-  const first = startOfMonth(viewDate)
-  const last = endOfMonth(viewDate)
-  const start = addDays(first, -first.getDay())
-  const end = addDays(last, 6 - last.getDay())
-  const days = []
-  for (let d = new Date(start); d <= end; d = addDays(d, 1)) {
-    days.push(new Date(d))
-  }
-  return days
-}
 
 function shiftMonth(d, delta) {
   const next = new Date(d.getFullYear(), d.getMonth() + delta, 1)

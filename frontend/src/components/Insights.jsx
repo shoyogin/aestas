@@ -3,7 +3,7 @@ import HormoneChart from './HormoneChart'
 import PhaseDashboard from './PhaseDashboard'
 import { PHASE_LABELS } from '../cycle/phaseEngine'
 import { HORMONE_CHART_INSIGHTS } from '../cycle/hormoneInsights'
-import { useCycle } from './AppHome'
+import { useCycle } from '../hooks/useCycle'
 
 export default function Insights() {
   const { phaseInfo, cycleLength } = useCycle()

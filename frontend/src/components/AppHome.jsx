@@ -1,18 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { api } from '../api/client'
 import { getDailyLogs, upsertDailyLog } from '../api/dailyLogs'
 import { getCycleContext } from '../api/cycle'
 import { getPhaseForDate } from '../cycle/phaseEngine'
-import { toYMD, startOfMonth, endOfMonth } from './CalendarArc'
-
-const CycleContext = createContext(null)
-
-export function useCycle() {
-  const ctx = useContext(CycleContext)
-  if (!ctx) throw new Error('useCycle must be used inside AppHome')
-  return ctx
-}
+import { toYMD, startOfMonth, endOfMonth } from '../cycle/dates'
+import { CycleContext } from '../hooks/useCycle'
 
 const FLOW_OPTIONS = [
   { id: 'spots', label: 'Spots' },

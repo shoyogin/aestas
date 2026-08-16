@@ -1,8 +1,9 @@
 import Logo from './Logo'
-import CalendarArc, { CALENDAR_WIDTH } from './CalendarArc'
+import CalendarArc from './CalendarArc'
 import HormoneChart from './HormoneChart'
 import { PHASE_LABELS } from '../cycle/phaseEngine'
-import { useCycle } from './AppHome'
+import { CALENDAR_WIDTH } from '../cycle/dates'
+import { useCycle } from '../hooks/useCycle'
 
 export default function Track() {
   const {
