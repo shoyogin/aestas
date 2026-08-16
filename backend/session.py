@@ -1,7 +1,8 @@
 """Redis-backed session management."""
 import secrets
-from typing import Optional
+
 import redis
+
 from config import settings
 
 # Import after database so Base is defined
@@ -23,7 +24,7 @@ def create_session(user_id: int, email: str, has_completed_onboarding: bool) -> 
     return token
 
 
-def get_session(token: Optional[str]) -> Optional[dict]:
+def get_session(token: str | None) -> dict | None:
     """Return session data from Redis or None if invalid/expired."""
     if not token:
         return None
@@ -44,7 +45,7 @@ def get_session(token: Optional[str]) -> Optional[dict]:
         return None
 
 
-def delete_session(token: Optional[str]) -> None:
+def delete_session(token: str | None) -> None:
     """Remove session from Redis (logout)."""
     if token:
         redis_client.delete(SESSION_PREFIX + token)

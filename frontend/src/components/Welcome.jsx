@@ -11,7 +11,7 @@ export default function Welcome() {
             Aestas
           </h1>
           <p className="mt-2 text-powder-blush/90 text-lg">
-            Your cycle, your way.
+            It&apos;s your time to bloom.
           </p>
         </div>
         <div className="flex flex-col gap-4 pt-4">

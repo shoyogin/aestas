@@ -10,3 +10,22 @@
     font-family: 'DM Sans', system-ui, sans-serif;
   }
 }
+
+@keyframes bloom-fade-in-out {
+  0% {
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-bloom-fade-in-out {
+  opacity: 0;
+  animation: bloom-fade-in-out 5s ease-in-out forwards;
+}

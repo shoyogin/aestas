@@ -1,0 +1,3 @@
+# FastAPI: Depends() in defaults is the documented pattern (B008).
+[lint]
+ignore = ["B008"]

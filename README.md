@@ -1,6 +1,6 @@
 # Aestas
 
-A modern cycle-tracking app: sign in with Google, set your cycle length, and get a simple “under construction” app experience. Built with React/Vite/Tailwind (frontend), FastAPI (backend), PostgreSQL, and Redis, orchestrated with Docker Compose.
+A modern cycle-tracking app: sign in with Google, set your cycle length, log period days, and see phase-based suggestions on the main calendar. Built with React/Vite/Tailwind (frontend), FastAPI (backend), PostgreSQL, and Redis, orchestrated with Docker Compose.
 
 ![Welcome screen](docs/assets/welcome.png)
 
@@ -18,11 +18,11 @@ A modern cycle-tracking app: sign in with Google, set your cycle length, and get
    docker compose up --build
    ```
    Frontend: **http://localhost:5173** · Backend: **http://localhost:8000** (Postgres + Redis start with them).
-   Open the frontend URL, sign in with Google → Onboarding (cycle length) → WIP page.
+   Open the frontend URL, sign in with Google → Onboarding (cycle length + last cycle) → Track / Insights / Friends tabs.
 
 ## Project structure
 
-- **frontend/** — React + Vite + Tailwind (components: Welcome, Onboarding, WIP; API client; `useAuth` hook).
+- **frontend/** — React + Vite + Tailwind (Welcome, Onboarding, LastCycle, AppShell tabs: Track / Insights / Friends; API client; `useAuth` hook).
 - **backend/** — FastAPI (OAuth, Redis sessions, PostgreSQL users, POST `/users/onboarding`).
 - **docs/** — Educational docs (overview, Google OAuth, OAuth/sessions, database/onboarding, Docker/CI, pre-commit).
 - **docker-compose.yml** — frontend (Vite dev server), backend, postgres, redis.
@@ -45,6 +45,8 @@ All in **docs/**:
 4. [04-database-and-onboarding.md](docs/04-database-and-onboarding.md) — PostgreSQL schema and onboarding API.
 5. [05-docker-and-ci.md](docs/05-docker-and-ci.md) — Docker Compose and GitHub Actions CI.
 6. [06-pre-commit.md](docs/06-pre-commit.md) — Pre-commit hooks and usage.
+7. [07-cycle-phases.md](docs/07-cycle-phases.md) — Four cycle phases and the dashboard under the calendar.
+8. [08-circle-follows.md](docs/08-circle-follows.md) — Nickname search, friend vs partner follows, privacy.
 
 ## Palette
 
