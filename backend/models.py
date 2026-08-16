@@ -1,7 +1,17 @@
 """SQLAlchemy database models."""
-from sqlalchemy import Column, Date, Integer, String, DateTime, Boolean, ForeignKey, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.sql import func
+
 from database import Base
 
 

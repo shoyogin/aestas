@@ -1,16 +1,25 @@
 """FastAPI entry point: CORS, routes, and OAuth callback."""
 import secrets
-from fastapi import FastAPI, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, RedirectResponse
+from httpx import HTTPError
 from sqlalchemy.orm import Session
 
+from auth import exchange_code_for_user, get_google_authorize_url
 from config import settings
-from database import get_db, engine, Base, add_user_cycle_aggregate_columns_if_missing, migrate_user_cycle_history_arrays, add_nickname_and_follows_if_missing
+from database import (
+    Base,
+    add_nickname_and_follows_if_missing,
+    add_user_cycle_aggregate_columns_if_missing,
+    engine,
+    get_db,
+    migrate_user_cycle_history_arrays,
+)
 from models import User
-from auth import get_google_authorize_url, exchange_code_for_user
-from session import get_session, delete_session
-from routers import users, follows
+from routers import follows, users
+from session import delete_session, get_session
 
 # Create tables on startup (for dev; in production use migrations)
 Base.metadata.create_all(bind=engine)
@@ -67,7 +76,7 @@ async def auth_callback(
     redirect_uri = f"{settings.backend_public_url.rstrip('/')}/auth/callback"
     try:
         result = await exchange_code_for_user(code, redirect_uri)
-    except Exception:
+    except (ValueError, OSError, HTTPError):
         return RedirectResponse(url=f"{settings.frontend_origin}/?error=oauth_failed", status_code=302)
 
     redirect_url = f"{settings.frontend_origin}{result['redirect_path']}"

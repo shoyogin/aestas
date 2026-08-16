@@ -1,6 +1,6 @@
 """User-related endpoints (onboarding, etc.)."""
-from datetime import date
 import re
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -8,8 +8,8 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import User, DailyLog
 from dependencies import get_current_user
+from models import DailyLog, User
 
 router = APIRouter()
 

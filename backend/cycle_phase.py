@@ -1,5 +1,5 @@
 """Server-side cycle phase (same rules as frontend/src/cycle/phaseEngine.js)."""
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 
 def _latest_start_on_or_before(start_dates: list[date], selected: date) -> date | None:
@@ -73,7 +73,7 @@ def get_phase_for_today(cycle_length: int | None, start_dates: list[date] | None
     length = int(cycle_length) if cycle_length else 0
     if length < 1:
         return {"phase": None, "cycle_day": None}
-    selected = date.today()
+    selected = datetime.now(timezone.utc).date()
     starts = list(start_dates or [])
     ends = list(end_dates or [])
     start = _latest_start_on_or_before(starts, selected)

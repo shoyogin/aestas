@@ -1,6 +1,8 @@
 """Google OAuth 2.0 flow using Authlib."""
 from urllib.parse import urlencode
+
 from authlib.integrations.httpx_client import AsyncOAuth2Client
+
 from config import settings
 from database import SessionLocal
 from models import User
