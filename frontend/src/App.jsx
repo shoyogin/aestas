@@ -4,7 +4,14 @@ import Welcome from './components/Welcome'
 import Onboarding from './components/Onboarding'
 import LastCycle from './components/LastCycle'
 import Blooming from './components/Blooming'
-import Main from './components/Main'
+import AppShell from './components/AppShell'
+import AppHome from './components/AppHome'
+import Track from './components/Track'
+import Insights from './components/Insights'
+import Friends from './components/Friends'
+import Account from './components/Account'
+import Circle from './components/Circle'
+import SharedCycle from './components/SharedCycle'
 
 function App() {
   const { isAuthenticated, isLoading, hasCompletedOnboarding } = useAuth()
@@ -58,7 +65,34 @@ function App() {
         path="/app"
         element={
           isAuthenticated ? (
-            <Main />
+            <AppShell />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
+      >
+        <Route element={<AppHome />}>
+          <Route index element={<Track />} />
+          <Route path="insights" element={<Insights />} />
+          <Route path="friends" element={<Friends />} />
+        </Route>
+        <Route path="account" element={<Account />} />
+      </Route>
+      <Route
+        path="/circle"
+        element={
+          isAuthenticated ? (
+            <Circle />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
+      />
+      <Route
+        path="/circle/:followId"
+        element={
+          isAuthenticated ? (
+            <SharedCycle />
           ) : (
             <Navigate to="/" replace />
           )

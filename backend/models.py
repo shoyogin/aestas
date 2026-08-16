@@ -21,6 +21,7 @@ class User(Base):
     normal_date = Column(ARRAY(Date), nullable=True)
     heavy_date = Column(ARRAY(Date), nullable=True)
     awaiting_period_end = Column(Boolean, nullable=False, default=False)  # True after "Period started" until "Period ended"
+    nickname = Column(String(32), unique=True, nullable=True, index=True)  # lowercase unique handle
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -42,3 +43,19 @@ class DailyLog(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     __table_args__ = (UniqueConstraint("user_id", "date", name="uq_daily_logs_user_date"),)
+
+
+class FollowRequest(Base):
+    """Consent-based follow: requester wants to see target's cycle phase."""
+
+    __tablename__ = "follow_requests"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    requester_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    target_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    link_type = Column(String(20), nullable=False)  # friend | partner
+    status = Column(String(20), nullable=False, default="pending")  # pending | accepted | refused | revoked
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (UniqueConstraint("requester_id", "target_id", name="uq_follow_requester_target"),)

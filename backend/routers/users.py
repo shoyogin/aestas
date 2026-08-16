@@ -1,8 +1,10 @@
 """User-related endpoints (onboarding, etc.)."""
 from datetime import date
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -10,6 +12,8 @@ from models import User, DailyLog
 from dependencies import get_current_user
 
 router = APIRouter()
+
+NICKNAME_RE = re.compile(r"^[a-z0-9_]{3,24}$")
 
 FLOW_VALUES = {"spots", "light", "normal", "heavy"}
 
@@ -94,6 +98,73 @@ def post_last_cycle(
         "last_cycle_start": body.last_cycle_start,
         "cycle_start_dates": _cycle_dates_to_iso(current_user, "cycle_start_dates"),
     }
+
+
+@router.get("/cycle-context")
+def get_cycle_context(current_user: User = Depends(get_current_user)):
+    """Cycle length and recorded start/end dates for phase mapping on the main calendar."""
+    return {
+        "cycle_length": current_user.cycle_length,
+        "cycle_start_dates": _cycle_dates_to_iso(current_user, "cycle_start_dates"),
+        "cycle_end_dates": _cycle_dates_to_iso(current_user, "cycle_end_dates"),
+    }
+
+
+class NicknameBody(BaseModel):
+    nickname: str = Field(..., min_length=3, max_length=24)
+
+
+def _normalize_nickname(raw: str) -> str:
+    nick = (raw or "").strip().lower()
+    if not NICKNAME_RE.match(nick):
+        raise HTTPException(
+            status_code=400,
+            detail="Nickname must be 3–24 characters: a–z, 0–9, underscore.",
+        )
+    return nick
+
+
+@router.patch("/me")
+def patch_me(
+    body: NicknameBody,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Set or change unique nickname (stored lowercase)."""
+    nick = _normalize_nickname(body.nickname)
+    taken = (
+        db.query(User)
+        .filter(func.lower(User.nickname) == nick, User.id != current_user.id)
+        .first()
+    )
+    if taken:
+        raise HTTPException(status_code=409, detail="That nickname is taken.")
+    current_user.nickname = nick
+    db.commit()
+    db.refresh(current_user)
+    return {"ok": True, "nickname": current_user.nickname}
+
+
+@router.get("/search")
+def search_users(
+    nickname: str = Query(..., min_length=1, max_length=24),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Find users by nickname prefix. Returns nickname only (no email)."""
+    q = nickname.strip().lower()
+    rows = (
+        db.query(User)
+        .filter(
+            User.nickname.isnot(None),
+            func.lower(User.nickname).like(f"{q}%"),
+            User.id != current_user.id,
+        )
+        .order_by(User.nickname)
+        .limit(10)
+        .all()
+    )
+    return [{"nickname": r.nickname} for r in rows]
 
 
 class DailyLogUpsertBody(BaseModel):

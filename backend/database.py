@@ -78,6 +78,19 @@ def migrate_user_cycle_history_arrays():
         conn.commit()
 
 
+def add_nickname_and_follows_if_missing():
+    """Nickname on users; follow_requests created via metadata.create_all."""
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname VARCHAR(32)"))
+        conn.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_users_nickname_lower "
+                "ON users (LOWER(nickname)) WHERE nickname IS NOT NULL"
+            )
+        )
+        conn.commit()
+
+
 def get_db():
     """Dependency: yield a DB session and close it after the request."""
     db = SessionLocal()

@@ -30,7 +30,7 @@ This doc explains how the “Sign in with Google” flow is implemented in the b
    - **Redirects** the browser to the frontend (`/onboarding` or `/app`) and **sets a cookie** named `session` with the session token (HttpOnly, SameSite=Lax, 7-day expiry).
 
 6. **Frontend knows who’s logged in**
-   The frontend calls `GET http://localhost:8000/auth/me` (with credentials). The browser sends the `session` cookie (set by the backend on port 8000). The backend reads the cookie, looks up the session in Redis, and returns user info (e.g. `has_completed_onboarding`). No password or Google token is stored in the frontend; only the session cookie is used.
+   The frontend calls `GET http://localhost:8000/auth/me` (with credentials). The browser sends the `session` cookie (set by the backend on port 8000). The backend reads the cookie, looks up the session in Redis, and returns user info (e.g. `has_completed_onboarding`). No password or Google token is stored in the frontend; only the session cookie is used. **Sign out** is `POST /auth/logout` (Account tab): Redis session is deleted and the cookie is cleared.
 
 ## Why we use Redis for sessions
 
