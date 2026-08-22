@@ -2,9 +2,9 @@
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from database import get_db
-from models import User
-from session import get_session
+from app.database import get_db
+from app.models import User
+from app.session import get_session
 
 
 def get_current_user(
@@ -12,8 +12,7 @@ def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     """Dependency: require a valid session and return the User."""
-    token = request.cookies.get("session")
-    session_data = get_session(token)
+    session_data = get_session(request.cookies.get("session"))
     if not session_data:
         raise HTTPException(status_code=401, detail="Not authenticated")
     user = db.query(User).filter(User.id == session_data["user_id"]).first()

@@ -1,5 +1,20 @@
-"""Server-side cycle phase (same rules as frontend/src/cycle/phaseEngine.js)."""
-from datetime import date, datetime, timedelta, timezone
+"""Server-side cycle phase.
+
+Mirrors frontend/src/cycle/phaseEngine.js exactly; shared/phase-cases.json holds
+the golden cases both test suites assert against, so the two cannot drift.
+"""
+import logging
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+logger = logging.getLogger(__name__)
+
+PHASE_LABELS = {
+    "menstrual": "Menstrual",
+    "follicular": "Follicular",
+    "ovulation": "Ovulation",
+    "luteal": "Luteal",
+}
 
 
 def _latest_start_on_or_before(start_dates: list[date], selected: date) -> date | None:
@@ -56,37 +71,69 @@ def _ovulation_window(length: int) -> tuple[int, int]:
     return ov_start, ov_end
 
 
-def _assign_phase(cycle_day: int, m_end: int, ov_start: int, ov_end: int, length: int) -> str:
+def _assign_phase(cycle_day: int, m_end: int, ov_start: int, ov_end: int) -> str:
     if cycle_day <= m_end:
         return "menstrual"
     if cycle_day < ov_start:
         return "follicular"
     if cycle_day <= ov_end:
         return "ovulation"
-    if cycle_day <= length:
-        return "luteal"
     return "luteal"
 
 
-def get_phase_for_today(cycle_length: int | None, start_dates: list[date] | None, end_dates: list[date] | None):
-    """Return {phase, cycle_day} for today, or phase None."""
+def _empty() -> dict:
+    return {"phase": None, "cycle_day": None, "phase_label": None}
+
+
+def today_in(timezone_name: str | None) -> date:
+    """Calendar day in the user's own timezone, falling back to UTC."""
+    try:
+        tz = ZoneInfo(timezone_name or "UTC")
+    except (ZoneInfoNotFoundError, ValueError):
+        logger.warning("Unknown timezone %r; falling back to UTC", timezone_name)
+        tz = ZoneInfo("UTC")
+    return datetime.now(tz).date()
+
+
+def get_phase_for_date(
+    selected: date,
+    cycle_length: int | None,
+    start_dates: list[date] | None,
+    end_dates: list[date] | None,
+) -> dict:
+    """Return {phase, cycle_day, phase_label} for `selected`, or Nones."""
     length = int(cycle_length) if cycle_length else 0
     if length < 1:
-        return {"phase": None, "cycle_day": None}
-    selected = datetime.now(timezone.utc).date()
+        return _empty()
     starts = list(start_dates or [])
     ends = list(end_dates or [])
     start = _latest_start_on_or_before(starts, selected)
     if start is None:
-        return {"phase": None, "cycle_day": None}
+        return _empty()
     raw_day = (selected - start).days + 1
     if raw_day < 1:
-        return {"phase": None, "cycle_day": None}
+        return _empty()
     cycle_day = ((raw_day - 1) % length) + 1
     ov_start, ov_end = _ovulation_window(length)
     max_m = max(0, ov_start - 1)
     recorded = _recorded_menstrual_end_day(start, ends, starts, length)
     default_m = _default_menstrual_days(length)
     m_end = min(max(recorded if recorded is not None else default_m, 0), max_m)
-    phase = _assign_phase(cycle_day, m_end, ov_start, ov_end, length)
-    return {"phase": phase, "cycle_day": cycle_day}
+    phase = _assign_phase(cycle_day, m_end, ov_start, ov_end)
+    return {
+        "phase": phase,
+        "cycle_day": cycle_day,
+        "phase_label": PHASE_LABELS[phase],
+    }
+
+
+def get_phase_for_today(
+    cycle_length: int | None,
+    start_dates: list[date] | None,
+    end_dates: list[date] | None,
+    timezone_name: str | None = None,
+) -> dict:
+    """Phase for the user's own "today", not the server's."""
+    return get_phase_for_date(
+        today_in(timezone_name), cycle_length, start_dates, end_dates
+    )
