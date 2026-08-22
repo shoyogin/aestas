@@ -1,5 +1,5 @@
 {
-  "_comment": "Golden cases for the cycle phase engine. backend/app/cycle_phase.py and frontend/src/cycle/phaseEngine.js are independent implementations of the same rules; both test suites assert against this file so the two cannot drift apart.",
+  "_comment": "Golden cases for the cycle phase engine. backend/app/cycle_phase.py and frontend/src/cycle/phaseEngine.js are independent implementations of the same rules; both test suites assert against this file so the two cannot drift apart. Menstrual (~5/28) and ovulation (~3/28) both scale with cycle length; ovulation is counted back from the end by a ~14-day luteal phase, except on cycles too short for that to leave room.",
   "cases": [
     {
       "name": "28-day cycle, day 1 is menstrual",
@@ -138,36 +138,116 @@
       "expect": { "phase": null, "cycle_day": null }
     },
     {
-      "name": "short 15-day cycle clamps the ovulation window to the start",
+      "name": "shortest 15-day cycle still starts with a menstrual phase",
       "selected": "2026-03-01",
       "cycle_length": 15,
       "start_dates": ["2026-03-01"],
       "end_dates": [],
-      "expect": { "phase": "ovulation", "cycle_day": 1 }
+      "expect": { "phase": "menstrual", "cycle_day": 1 }
     },
     {
-      "name": "short 15-day cycle: day 4 is luteal once ovulation closes",
+      "name": "15-day cycle keeps a follicular day between menstrual and ovulation",
       "selected": "2026-03-04",
       "cycle_length": 15,
       "start_dates": ["2026-03-01"],
       "end_dates": [],
-      "expect": { "phase": "luteal", "cycle_day": 4 }
+      "expect": { "phase": "follicular", "cycle_day": 4 }
     },
     {
-      "name": "very short cycle: ovulation clamps to day 1 and squeezes out menstrual",
-      "selected": "2026-03-01",
-      "cycle_length": 16,
+      "name": "15-day cycle ovulates mid-cycle, not on day 1",
+      "selected": "2026-03-06",
+      "cycle_length": 15,
       "start_dates": ["2026-03-01"],
       "end_dates": [],
-      "expect": { "phase": "ovulation", "cycle_day": 1 }
+      "expect": { "phase": "ovulation", "cycle_day": 6 }
     },
     {
-      "name": "16-day cycle, day 2 opens the ovulation window",
+      "name": "15-day cycle: day 8 is luteal once ovulation closes",
+      "selected": "2026-03-08",
+      "cycle_length": 15,
+      "start_dates": ["2026-03-01"],
+      "end_dates": [],
+      "expect": { "phase": "luteal", "cycle_day": 8 }
+    },
+    {
+      "name": "16-day cycle, day 2 is still menstrual",
       "selected": "2026-03-02",
       "cycle_length": 16,
       "start_dates": ["2026-03-01"],
       "end_dates": [],
-      "expect": { "phase": "ovulation", "cycle_day": 2 }
+      "expect": { "phase": "menstrual", "cycle_day": 2 }
+    },
+    {
+      "name": "16-day cycle ovulates on day 5, leaving room for a luteal phase",
+      "selected": "2026-03-05",
+      "cycle_length": 16,
+      "start_dates": ["2026-03-01"],
+      "end_dates": [],
+      "expect": { "phase": "ovulation", "cycle_day": 5 }
+    },
+    {
+      "name": "21-day cycle still counts ovulation back 14 days from the end",
+      "selected": "2026-03-07",
+      "cycle_length": 21,
+      "start_dates": ["2026-03-01"],
+      "end_dates": [],
+      "expect": { "phase": "ovulation", "cycle_day": 7 }
+    },
+    {
+      "name": "28-day ovulation window opens on day 13",
+      "selected": "2026-03-13",
+      "cycle_length": 28,
+      "start_dates": ["2026-03-01"],
+      "end_dates": [],
+      "expect": { "phase": "ovulation", "cycle_day": 13 }
+    },
+    {
+      "name": "35-day cycle widens ovulation to 4 days, starting on day 19",
+      "selected": "2026-03-19",
+      "cycle_length": 35,
+      "start_dates": ["2026-03-01"],
+      "end_dates": [],
+      "expect": { "phase": "ovulation", "cycle_day": 19 }
+    },
+    {
+      "name": "35-day cycle: day 18 is the last follicular day",
+      "selected": "2026-03-18",
+      "cycle_length": 35,
+      "start_dates": ["2026-03-01"],
+      "end_dates": [],
+      "expect": { "phase": "follicular", "cycle_day": 18 }
+    },
+    {
+      "name": "45-day cycle widens ovulation to 5 days, opening on day 29",
+      "selected": "2026-03-29",
+      "cycle_length": 45,
+      "start_dates": ["2026-03-01"],
+      "end_dates": [],
+      "expect": { "phase": "ovulation", "cycle_day": 29 }
+    },
+    {
+      "name": "45-day cycle: ovulation still closes on day 33",
+      "selected": "2026-04-02",
+      "cycle_length": 45,
+      "start_dates": ["2026-03-01"],
+      "end_dates": [],
+      "expect": { "phase": "ovulation", "cycle_day": 33 }
+    },
+    {
+      "name": "45-day cycle: day 34 is luteal",
+      "selected": "2026-04-03",
+      "cycle_length": 45,
+      "start_dates": ["2026-03-01"],
+      "end_dates": [],
+      "expect": { "phase": "luteal", "cycle_day": 34 }
+    },
+    {
+      "name": "42-day cycle rounds the ovulation width the same way in both languages",
+      "selected": "2026-03-26",
+      "cycle_length": 42,
+      "start_dates": ["2026-03-01"],
+      "end_dates": [],
+      "expect": { "phase": "ovulation", "cycle_day": 26 }
     },
     {
       "name": "long 45-day cycle scales the menstrual window up to 8 days",

@@ -4,10 +4,16 @@ Mirrors frontend/src/cycle/phaseEngine.js exactly; shared/phase-cases.json holds
 the golden cases both test suites assert against, so the two cannot drift.
 """
 import logging
+import math
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 logger = logging.getLogger(__name__)
+
+# Phase lengths are expressed per 28-day cycle and scaled from there.
+MENSTRUAL_DAYS_PER_28 = 5
+OVULATION_DAYS_PER_28 = 3
+LUTEAL_DAYS = 14
 
 PHASE_LABELS = {
     "menstrual": "Menstrual",
@@ -54,21 +60,48 @@ def _recorded_menstrual_end_day(
     return (best_end - start).days + 1
 
 
+def _round_half_up(value: float) -> int:
+    """Round .5 away from zero, the way JavaScript's Math.round does.
+
+    Python's built-in round() is banker's rounding, so round(4.5) is 4 while
+    Math.round(4.5) is 5 — which is exactly the kind of silent divergence the
+    two implementations must not have. A 42-day cycle hits that case.
+    """
+    return math.floor(value + 0.5)
+
+
 def _default_menstrual_days(length: int) -> int:
-    return max(3, round((length * 5) / 28))
+    return max(3, _round_half_up((length * MENSTRUAL_DAYS_PER_28) / 28))
 
 
-def _ovulation_window(length: int) -> tuple[int, int]:
-    ov_day = max(1, length - 14)
-    ov_start = ov_day - 1
-    ov_end = ov_day + 1
-    if ov_start < 1:
-        ov_start = 1
-        ov_end = min(length, 3)
+def _ovulation_days(length: int) -> int:
+    """Width of the ovulation window, scaled to the cycle like every other phase."""
+    return max(3, _round_half_up((length * OVULATION_DAYS_PER_28) / 28))
+
+
+def _ovulation_window(length: int) -> tuple[int, int, int]:
+    """Return (ov_start, ov_end, ov_day) — the window and the day it centres on.
+
+    The window leans earlier than ovulation itself, because the fertile window
+    is mostly the days leading up to it.
+    """
+    width = _ovulation_days(length)
+    before = math.ceil((width - 1) / 2)
+
+    # The luteal phase runs ~14 days whatever the cycle length, so ovulation is
+    # counted back from the end. Below roughly 21 days that rule puts ovulation
+    # on or before the period itself; keep menstrual plus one follicular day
+    # ahead of it instead, so every phase still exists.
+    earliest_start = _default_menstrual_days(length) + 2
+    ov_day = max(length - LUTEAL_DAYS, earliest_start + before)
+
+    ov_start = ov_day - before
+    ov_end = ov_start + width - 1
     if ov_end > length:
         ov_end = length
-        ov_start = max(1, length - 2)
-    return ov_start, ov_end
+        ov_start = max(1, ov_end - width + 1)
+        ov_day = min(ov_day, ov_end)
+    return ov_start, ov_end, ov_day
 
 
 def _assign_phase(cycle_day: int, m_end: int, ov_start: int, ov_end: int) -> str:
@@ -114,7 +147,7 @@ def get_phase_for_date(
     if raw_day < 1:
         return _empty()
     cycle_day = ((raw_day - 1) % length) + 1
-    ov_start, ov_end = _ovulation_window(length)
+    ov_start, ov_end, _ov_day = _ovulation_window(length)
     max_m = max(0, ov_start - 1)
     recorded = _recorded_menstrual_end_day(start, ends, starts, length)
     default_m = _default_menstrual_days(length)

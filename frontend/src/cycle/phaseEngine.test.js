@@ -63,6 +63,75 @@ describe('phase engine — invariants', () => {
     expect(seen).toEqual(PHASE_IDS.filter((p) => seen.includes(p)))
   })
 
+  it.each(lengths)('a %i-day cycle has all four phases', (length) => {
+    // Ovulation scales with the cycle now, so no supported length loses one.
+    // A 15-day cycle used to report ovulation on day 1 and no menstrual phase.
+    const start = parseYMD('2026-03-01')
+    const seen = new Set()
+    for (let offset = 0; offset < length; offset += 1) {
+      seen.add(
+        getPhaseForDate({
+          selectedDate: addDays(start, offset),
+          cycleLength: length,
+          startDates: ['2026-03-01'],
+          endDates: [],
+        }).phase,
+      )
+    }
+    expect([...seen].sort()).toEqual([...PHASE_IDS].sort())
+  })
+
+  it.each([
+    [28, 3],
+    [35, 4],
+    [42, 5],
+    [45, 5],
+    [15, 3],
+  ])('a %i-day cycle gets a %i-day ovulation window', (length, expected) => {
+    const { windows } = getPhaseForDate({
+      selectedDate: parseYMD('2026-03-01'),
+      cycleLength: length,
+      startDates: ['2026-03-01'],
+      endDates: [],
+    })
+    expect(windows.ovulation.end - windows.ovulation.start + 1).toBe(expected)
+  })
+
+  it('places a 28-day cycle exactly where it always did', () => {
+    const result = getPhaseForDate({
+      selectedDate: parseYMD('2026-03-01'),
+      cycleLength: 28,
+      startDates: ['2026-03-01'],
+      endDates: [],
+    })
+    expect(result.windows.ovulation).toEqual({ start: 13, end: 15 })
+    expect(result.ovulationDay).toBe(14)
+  })
+
+  it.each(lengths.filter((l) => l >= 21))(
+    'a %i-day cycle still counts ovulation back 14 days from the end',
+    (length) => {
+      const { ovulationDay } = getPhaseForDate({
+        selectedDate: parseYMD('2026-03-01'),
+        cycleLength: length,
+        startDates: ['2026-03-01'],
+        endDates: [],
+      })
+      expect(ovulationDay).toBe(length - 14)
+    },
+  )
+
+  it.each(lengths)('the reported ovulation day sits inside its window (%i days)', (length) => {
+    const { windows, ovulationDay } = getPhaseForDate({
+      selectedDate: parseYMD('2026-03-01'),
+      cycleLength: length,
+      startDates: ['2026-03-01'],
+      endDates: [],
+    })
+    expect(ovulationDay).toBeGreaterThanOrEqual(windows.ovulation.start)
+    expect(ovulationDay).toBeLessThanOrEqual(windows.ovulation.end)
+  })
+
   it('reports the cycle start it measured from', () => {
     const result = getPhaseForDate({
       selectedDate: parseYMD('2026-03-10'),

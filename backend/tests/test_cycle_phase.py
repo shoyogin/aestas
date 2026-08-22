@@ -3,7 +3,14 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.cycle_phase import get_phase_for_date, get_phase_for_today, today_in
+from app.cycle_phase import (
+    _default_menstrual_days,
+    _ovulation_days,
+    _ovulation_window,
+    get_phase_for_date,
+    get_phase_for_today,
+    today_in,
+)
 
 
 def _dates(values):
@@ -63,6 +70,62 @@ def test_phases_never_run_backwards(length):
         if not seen or seen[-1] != phase:
             seen.append(phase)
     assert seen == [p for p in order if p in seen]
+
+
+@pytest.mark.parametrize("length", range(15, 46))
+def test_every_cycle_length_has_all_four_phases(length):
+    """Ovulation scales with the cycle instead of sitting at a fixed 3 days on a
+    fixed day, so no supported length can lose a phase entirely. A 15-day cycle
+    used to report ovulation on day 1 and no menstrual phase at all."""
+    start = date(2026, 3, 1)
+    seen = {
+        get_phase_for_date(start + timedelta(days=offset), length, [start], [])["phase"]
+        for offset in range(length)
+    }
+    assert seen == {"menstrual", "follicular", "ovulation", "luteal"}
+
+
+@pytest.mark.parametrize("length", range(15, 46))
+def test_ovulation_window_is_as_wide_as_the_rules_say(length):
+    ov_start, ov_end, _ = _ovulation_window(length)
+    assert ov_end - ov_start + 1 == _ovulation_days(length)
+
+
+def test_ovulation_widens_with_the_cycle():
+    """~3 days on a 28-day cycle, scaled from there."""
+    assert _ovulation_days(28) == 3
+    assert _ovulation_days(35) == 4
+    assert _ovulation_days(45) == 5
+    # Never narrower than three days, however short the cycle.
+    assert _ovulation_days(15) == 3
+
+
+@pytest.mark.parametrize("length", range(15, 46))
+def test_ovulation_never_overlaps_the_menstrual_window(length):
+    """The window must leave room for the period and at least one follicular day."""
+    ov_start, ov_end, _ = _ovulation_window(length)
+    assert ov_start >= _default_menstrual_days(length) + 2
+    assert ov_end <= length
+
+
+@pytest.mark.parametrize("length", range(21, 46))
+def test_normal_cycles_still_count_back_fourteen_days(length):
+    """For cycles of 21 days and up, the standard constant-luteal rule is
+    unchanged — the scaling only rescues cycles too short for it."""
+    _, _, ov_day = _ovulation_window(length)
+    assert ov_day == length - 14
+
+
+def test_twenty_eight_day_cycle_is_unchanged():
+    """The common case must land exactly where it always did."""
+    ov_start, ov_end, ov_day = _ovulation_window(28)
+    assert (ov_start, ov_end, ov_day) == (13, 15, 14)
+
+
+def test_rounding_matches_javascript_on_a_42_day_cycle():
+    """42 * 3 / 28 is exactly 4.5. Python's round() would answer 4 and
+    JavaScript's Math.round() 5, so the engines would silently disagree."""
+    assert _ovulation_days(42) == 5
 
 
 def test_today_respects_the_users_timezone():
