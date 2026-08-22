@@ -22,18 +22,62 @@ A modern cycle-tracking app: sign in with Google, set your cycle length, log per
 
 ## Project structure
 
-- **frontend/** — React + Vite + Tailwind (Welcome, Onboarding, LastCycle, AppShell tabs: Track / Insights / Friends; API client; `useAuth` hook).
-- **backend/** — FastAPI (OAuth, Redis sessions, PostgreSQL users, POST `/users/onboarding`).
-- **docs/** — Educational docs (overview, Google OAuth, OAuth/sessions, database/onboarding, Docker/CI, pre-commit).
+- **frontend/** — React + Vite + Tailwind. Screens (Welcome, Onboarding, LastCycle, and the AppShell tabs Track / Insights / Friends), `src/api/` client, `src/cycle/` phase engine, `src/context/authContext.js` for the signed-in user.
+- **backend/** — FastAPI as the `app` package (`app.main:app`): OAuth, Redis sessions, PostgreSQL, and the users / follows / content / health routers.
+- **backend/migrations/** — Alembic migrations. They are the only thing that changes the schema.
+- **shared/phase-cases.json** — Golden cases for the cycle phase engine. The backend and frontend implement the same rules separately and both test suites assert against this file, so the two cannot drift apart.
+- **docs/** — Educational docs (overview, Google OAuth, OAuth/sessions, database/onboarding, Docker/CI, pre-commit, cycle phases, circle follows).
 - **docker-compose.yml** — frontend (Vite dev server), backend, postgres, redis.
 
 ## Development
 
-- **Full stack in Docker**: `docker compose up --build` — frontend on 5173, backend on 8000. Frontend source is mounted so edits trigger Vite HMR.
+- **Full stack in Docker**: `docker compose up --build` — frontend on 5173, backend on 8000. Frontend source is mounted so edits trigger Vite HMR. The backend container applies migrations before it starts serving.
 - **Frontend only locally**: `cd frontend && npm install && npm run dev` (talks to backend at `http://localhost:8000`).
-- **Backend only locally**: `cd backend && pip install -r requirements.txt && uvicorn main:app --reload` (set `DATABASE_URL`, `REDIS_URL`, `GOOGLE_*`).
+- **Backend only locally**:
+  ```bash
+  cd backend
+  pip install -r requirements-dev.txt
+  export DATABASE_URL=... REDIS_URL=... GOOGLE_CLIENT_ID=... GOOGLE_CLIENT_SECRET=...
+  alembic upgrade head          # never create_all: migrations own the schema
+  uvicorn app.main:app --reload
+  ```
+- **Tests**: `cd backend && pytest` and `cd frontend && npm test`.
+- **Migrations**: `alembic revision -m "..."` to add one, `alembic upgrade head` to apply, `alembic check` to confirm the models and the schema still agree.
 - **Pre-commit**: `pip install pre-commit && pre-commit install`.
-- **CI**: GitHub Actions on push/PR to `main` (frontend lint/build, backend lint + smoke test).
+- **CI**: GitHub Actions on push/PR to `main` — frontend lint/test/build, backend lint, migration round-trip, `alembic check`, and pytest, plus a Docker image build.
+
+### Adopting an existing database
+
+The schema predates Alembic. A database created before migrations existed needs
+to be told where it already is, once:
+
+```bash
+cd backend
+alembic stamp 0001_initial   # "this DB already has the original schema"
+alembic upgrade head
+```
+
+A fresh database just runs `alembic upgrade head`.
+
+## Configuration
+
+Set through the environment (see `.env.example`):
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | — | Required for sign-in. |
+| `DATABASE_URL` | local Postgres | |
+| `REDIS_URL` | local Redis | Sessions and rate limiting. |
+| `FRONTEND_ORIGIN` | `http://localhost:5173` | CORS origin and post-login redirect target. |
+| `BACKEND_PUBLIC_URL` | `http://localhost:8000` | Used to build the OAuth redirect URI. |
+| `COOKIE_SECURE` | `false` | **Set to `true` anywhere served over HTTPS**, so the session cookie is not sent in the clear. |
+| `LOG_LEVEL` | `INFO` | |
+| `SESSION_TTL_DAYS` | `7` | |
+
+## Health checks
+
+- `GET /health` — liveness. Touches no dependency; answers as long as the process is up.
+- `GET /health/ready` — readiness. Returns 503 unless both Postgres and Redis answer. This is what Compose waits on.
 
 ## Docs (educational)
 

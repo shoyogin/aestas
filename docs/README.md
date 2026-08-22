@@ -8,5 +8,7 @@ Educational docs for the Aestas app. They assume basic familiarity with web apps
 4. **[04-database-and-onboarding.md](04-database-and-onboarding.md)** — PostgreSQL schema and the onboarding API.
 5. **[05-docker-and-ci.md](05-docker-and-ci.md)** — Docker Compose and GitHub Actions CI.
 6. **[06-pre-commit.md](06-pre-commit.md)** — Pre-commit hooks and how to use them.
+7. **[07-cycle-phases.md](07-cycle-phases.md)** — The four cycle phases, how a date becomes a phase, and the dashboard.
+8. **[08-circle-follows.md](08-circle-follows.md)** — Nicknames, friend vs partner follows, and what each one can see.
 
 Start with **01-overview-and-setup.md** if you’re new to the project.

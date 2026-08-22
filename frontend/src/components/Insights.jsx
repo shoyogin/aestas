@@ -1,12 +1,13 @@
 import Logo from './Logo'
 import HormoneChart from './HormoneChart'
 import PhaseDashboard from './PhaseDashboard'
+import ErrorBanner from './ErrorBanner'
 import { PHASE_LABELS } from '../cycle/phaseEngine'
 import { HORMONE_CHART_INSIGHTS } from '../cycle/hormoneInsights'
 import { useCycle } from '../hooks/useCycle'
 
 export default function Insights() {
-  const { phaseInfo, cycleLength } = useCycle()
+  const { phaseInfo, cycleLength, phaseContent, error, dismissError } = useCycle()
 
   return (
     <div className="flex flex-col items-center px-6 py-8">
@@ -18,6 +19,7 @@ export default function Insights() {
         </p>
       )}
       <div className="w-full max-w-3xl">
+        <ErrorBanner message={error} onDismiss={dismissError} className="mb-4" />
         <HormoneChart
           phase={phaseInfo.phase}
           cycleDay={phaseInfo.cycleDay}
@@ -26,11 +28,15 @@ export default function Insights() {
           ovulationDay={phaseInfo.ovulationDay}
         />
         {phaseInfo.phase && HORMONE_CHART_INSIGHTS[phaseInfo.phase] && (
-          <p className="text-powder-blush/90 text-sm text-center leading-snug max-w-xl mx-auto mb-8 line-clamp-2">
+          <p className="text-powder-blush/90 text-sm text-center leading-snug max-w-xl mx-auto mb-8">
             {HORMONE_CHART_INSIGHTS[phaseInfo.phase]}
           </p>
         )}
-        <PhaseDashboard phase={phaseInfo.phase} cycleDay={phaseInfo.cycleDay} />
+        <PhaseDashboard
+          phase={phaseInfo.phase}
+          cycleDay={phaseInfo.cycleDay}
+          content={phaseContent}
+        />
       </div>
     </div>
   )

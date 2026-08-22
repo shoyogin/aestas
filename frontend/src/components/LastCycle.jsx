@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { submitLastCycle } from '../api/onboarding'
+import { errorMessage } from '../api/client'
+import { toYMD } from '../cycle/dates'
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const WEEKS_BACK = 16
@@ -12,13 +14,6 @@ function getWeekStart(d) {
   date.setDate(date.getDate() - day)
   date.setHours(0, 0, 0, 0)
   return date
-}
-
-function toYMD(date) {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
 }
 
 /** Label for a single month */
@@ -104,7 +99,7 @@ export default function LastCycle() {
       await submitLastCycle(toYMD(selected))
       navigate('/blooming', { replace: true, state: { cycleLength } })
     } catch (err) {
-      setError(err.response?.data?.detail || 'Something went wrong. Please try again.')
+      setError(errorMessage(err))
     } finally {
       setIsSubmitting(false)
     }

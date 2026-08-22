@@ -74,12 +74,14 @@ def engine():
 
 
 @pytest.fixture
-def db(engine):
-    """A clean database per test."""
+def db(engine, _fake_redis):
+    """A clean database and a clean Redis per test, so rate-limit counters and
+    sessions never leak between tests."""
     from sqlalchemy import text
 
     from app.database import SessionLocal
 
+    _fake_redis.store.clear()
     with engine.connect() as conn:
         conn.execute(
             text("TRUNCATE follow_requests, daily_logs, users RESTART IDENTITY CASCADE")

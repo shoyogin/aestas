@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Logo from './Logo'
-import CalendarArc from './CalendarArc'
+import ErrorBanner from './ErrorBanner'
 import { getFollowing } from '../api/follows'
+import { errorMessage } from '../api/client'
 
 function initials(name) {
   const s = (name || '?').replace(/^_/, '')
@@ -10,16 +11,26 @@ function initials(name) {
 }
 
 export default function Friends() {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const [selectedDate, setSelectedDate] = useState(() => new Date(today))
   const [friends, setFriends] = useState([])
-  const [hint, setHint] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
+    let cancelled = false
     getFollowing()
-      .then((list) => setFriends((list || []).filter((f) => f.link_type === 'friend')))
-      .catch(() => setFriends([]))
+      .then((list) => {
+        if (cancelled) return
+        setFriends((list || []).filter((f) => f.link_type === 'friend'))
+      })
+      .catch((err) => {
+        if (!cancelled) setError(errorMessage(err, 'Could not load your friends.'))
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   return (
@@ -33,16 +44,12 @@ export default function Friends() {
         Manage circle
       </Link>
       <div className="w-full max-w-3xl">
-        <CalendarArc
-          selectedDate={selectedDate}
-          onSelectDate={setSelectedDate}
-          logs={{}}
-          readOnly
-        />
+        <ErrorBanner message={error} onDismiss={() => setError(null)} className="mb-4" />
         <p className="text-powder-blush/80 text-sm text-center mb-4">
-          Friends you follow — tap a profile for advice later
+          Friends you follow — tap one for advice for their phase
         </p>
-        {friends.length === 0 && (
+        {loading && <p className="text-powder-blush/80 text-center text-sm">Loading…</p>}
+        {!loading && friends.length === 0 && (
           <p className="text-powder-blush/80 text-center text-sm">
             No friends yet. Use Manage circle to send a friend request.
           </p>
@@ -50,9 +57,10 @@ export default function Friends() {
         <ul className="space-y-3">
           {friends.map((f) => (
             <li key={f.id}>
-              <button
-                type="button"
-                onClick={() => setHint('Coming soon: static advice for this phase.')}
+              {/* The shared view already exists; this used to be a dead
+                  "coming soon" button. */}
+              <Link
+                to={`/circle/${f.id}`}
                 className="w-full flex items-center gap-4 rounded-2xl border border-powder-blush/30 bg-dusty-mauve/15 px-4 py-3 text-left hover:bg-dusty-mauve/25 transition-colors"
               >
                 <span className="flex-shrink-0 w-12 h-12 rounded-full bg-burnt-rose text-peach-fuzz font-semibold flex items-center justify-center">
@@ -63,20 +71,16 @@ export default function Friends() {
                     {f.nickname || 'Unknown'}
                   </span>
                   <span className="text-powder-blush text-sm">
-                    {f.phase_label
-                      ? `Day ${f.cycle_day} · ${f.phase_label}`
-                      : 'No phase yet'}
+                    {f.phase_label ? `Day ${f.cycle_day} · ${f.phase_label}` : 'No phase yet'}
                   </span>
                 </span>
-              </button>
+                <span className="text-powder-blush/60" aria-hidden>
+                  ›
+                </span>
+              </Link>
             </li>
           ))}
         </ul>
-        {hint && (
-          <p className="text-powder-blush/80 text-sm text-center mt-4" role="status">
-            {hint}
-          </p>
-        )}
       </div>
     </div>
   )

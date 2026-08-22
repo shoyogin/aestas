@@ -8,7 +8,7 @@ on:
 
 jobs:
   frontend:
-    name: Frontend (lint & build)
+    name: Frontend (lint, test & build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -23,11 +23,17 @@ jobs:
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
+      # No `|| npm install` fallback: that hid lockfile drift instead of failing.
       - name: Install dependencies
-        run: npm ci || npm install
+        run: npm ci
 
       - name: Lint
         run: npm run lint
+
+      # Runs shared/phase-cases.json, the same fixtures the backend asserts
+      # against, so the two phase engines cannot drift apart unnoticed.
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npm run build
@@ -44,11 +50,11 @@ jobs:
         env:
           POSTGRES_USER: aestas
           POSTGRES_PASSWORD: aestas
-          POSTGRES_DB: aestas
+          POSTGRES_DB: aestas_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U aestas -d aestas"
+          --health-cmd "pg_isready -U aestas -d aestas_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -62,7 +68,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgresql://aestas:aestas@localhost:5432/aestas
+      DATABASE_URL: postgresql://aestas:aestas@localhost:5432/aestas_test
       REDIS_URL: redis://localhost:6379/0
       GOOGLE_CLIENT_ID: test
       GOOGLE_CLIENT_SECRET: test
@@ -74,16 +80,35 @@ jobs:
         with:
           python-version: "3.12"
           cache: "pip"
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: backend/requirements-dev.txt
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
 
       - name: Lint (ruff)
-        run: pip install ruff && ruff check .
+        run: ruff check .
 
-      - name: Start app (smoke)
+      - name: Migrations apply and roll back
         run: |
-          uvicorn main:app --host 0.0.0.0 --port 8000 &
-          sleep 5
-          curl -f http://localhost:8000/health
+          alembic upgrade head
+          alembic downgrade base
+          alembic upgrade head
+
+      # Fails if the ORM and the migrations have drifted apart.
+      - name: Schema matches the models
+        run: alembic check
+
+      - name: Test
+        run: pytest
+
+  docker:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t aestas-backend ./backend
+
+      - name: Build frontend production image
+        run: docker build --target production -t aestas-frontend ./frontend

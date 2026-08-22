@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { submitOnboarding } from '../api/onboarding'
+import { errorMessage } from '../api/client'
+import { useAuth } from '../context/authContext'
 
 const CYCLE_LENGTH_MIN = 15
 const CYCLE_LENGTH_MAX = 45
@@ -12,6 +14,7 @@ function clamp(value) {
 
 export default function Onboarding() {
   const navigate = useNavigate()
+  const { refresh } = useAuth()
   const [cycleLength, setCycleLength] = useState(DEFAULT_CYCLE_LENGTH)
   const [inputValue, setInputValue] = useState(String(DEFAULT_CYCLE_LENGTH))
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -41,9 +44,11 @@ export default function Onboarding() {
     setIsSubmitting(true)
     try {
       await submitOnboarding(valueToSubmit)
+      // Without this the route guard still believes onboarding is unfinished.
+      await refresh()
       navigate('/onboarding/last-cycle', { replace: true, state: { cycleLength: valueToSubmit } })
     } catch (err) {
-      setError(err.response?.data?.detail || 'Something went wrong. Please try again.')
+      setError(errorMessage(err))
     } finally {
       setIsSubmitting(false)
     }

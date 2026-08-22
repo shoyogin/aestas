@@ -29,7 +29,7 @@ If there is **no cycle start on or before** that date, the dashboard asks you to
 - `cycle_start_dates` — every onboarding “last cycle” date and every **Period started** tap
 - `cycle_end_dates` — every **Period ended** tap
 
-The frontend does **not** store panel text in PostgreSQL. Copy lives in `frontend/src/cycle/phaseContent.js` so a later `GET /users/insights?date=` can replace it without changing the layout.
+Panel text is not stored in PostgreSQL either. It lives in one file, `backend/app/content/phase_panels.json`, and is served to the frontend by `GET /content/phases`. It used to be written twice — once in Python for the shared friend/partner view and once in JavaScript for your own dashboard — which is exactly the kind of duplication that drifts.
 
 ## How the phase is chosen
 
@@ -55,10 +55,19 @@ If you logged **Period ended** on 8 March for that start, menstrual can extend t
 
 ## Code to look at
 
-- `backend/routers/users.py` — `GET /users/cycle-context`
+- `backend/app/routers/users.py` — `GET /users/cycle-context`
 - `frontend/src/api/cycle.js` — client
 - `frontend/src/cycle/phaseEngine.js` — math
-- `frontend/src/cycle/phaseContent.js` — panel copy
+- `backend/app/content/phase_panels.json` — panel copy, served by `GET /content/phases`
+- `shared/phase-cases.json` — golden cases asserted by **both** test suites
+
+### The two implementations must agree
+
+`backend/app/cycle_phase.py` and `frontend/src/cycle/phaseEngine.js` implement the same rules in two languages: the frontend needs the phase instantly for any date you tap, and the backend needs it to tell your circle what to show. `shared/phase-cases.json` pins the expected answers, and both `pytest` and `npm test` run it, so if either side changes behaviour a build goes red.
+
+### A known limitation
+
+For very short cycles (15–17 days) `max(1, length − 14)` puts estimated ovulation on day 1–3. Because the menstrual window is capped so it can never overlap ovulation, those cycles end up with **no menstrual phase at all**. Onboarding allows a minimum of 15 days, so this is reachable. It is a limitation of the fixed-14-day-luteal rule rather than a bug in the code, and changing it is a product decision.
 - `frontend/src/components/HormoneChart.jsx` — schematic hormone plot + phase highlight
 - `frontend/src/cycle/hormoneCurves.js` — estrogen, progesterone, LH, FSH samples
 - `frontend/src/components/PhaseDashboard.jsx` — UI

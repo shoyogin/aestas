@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import Logo from './Logo'
 
 const DEFAULT_CYCLE_LENGTH = 28
+/** Matches the 5s bloom-fade-in-out animation, so the text is not cut mid-fade. */
+const HOLD_MS = 5000
 
 export default function Blooming() {
   const navigate = useNavigate()
@@ -10,9 +12,7 @@ export default function Blooming() {
   const cycleLength = location.state?.cycleLength ?? DEFAULT_CYCLE_LENGTH
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      navigate('/app', { replace: true })
-    }, 3000)
+    const t = setTimeout(() => navigate('/app', { replace: true }), HOLD_MS)
     return () => clearTimeout(t)
   }, [navigate])
 
@@ -27,6 +27,13 @@ export default function Blooming() {
         >
           Blooming every day, {cycleLength} days a month.
         </p>
+        <button
+          type="button"
+          onClick={() => navigate('/app', { replace: true })}
+          className="text-powder-blush/70 hover:text-peach-fuzz text-sm underline"
+        >
+          Skip
+        </button>
       </div>
     </div>
   )

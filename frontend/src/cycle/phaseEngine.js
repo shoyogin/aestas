@@ -8,6 +8,8 @@
  *   2026-03-20 → day 20, luteal
  */
 
+import { addDays, diffDays, parseYMD, startOfDay, toYMD } from './dates'
+
 export const PHASE_IDS = ['menstrual', 'follicular', 'ovulation', 'luteal']
 
 export const PHASE_LABELS = {
@@ -15,29 +17,6 @@ export const PHASE_LABELS = {
   follicular: 'Follicular',
   ovulation: 'Ovulation',
   luteal: 'Luteal',
-}
-
-function parseYMD(s) {
-  const [y, m, d] = String(s).split('-').map(Number)
-  if (!y || !m || !d) return null
-  return new Date(y, m - 1, d)
-}
-
-function startOfDay(d) {
-  const out = new Date(d)
-  out.setHours(0, 0, 0, 0)
-  return out
-}
-
-function diffDays(later, earlier) {
-  return Math.round((startOfDay(later) - startOfDay(earlier)) / (24 * 60 * 60 * 1000))
-}
-
-function toYMD(d) {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
 }
 
 /**
@@ -69,7 +48,7 @@ function nextStartAfter(startDates, start) {
  * Recorded period-end day number (1-based) for this cycle start, if any.
  */
 function recordedMenstrualEndDay(start, endDates, startDates, length) {
-  const cycleEndCap = addDaysLocal(start, length)
+  const cycleEndCap = startOfDay(addDays(start, length))
   const nextStart = nextStartAfter(startDates, start)
   const cap = nextStart && nextStart < cycleEndCap ? nextStart : cycleEndCap
   let bestEnd = null
@@ -80,13 +59,6 @@ function recordedMenstrualEndDay(start, endDates, startDates, length) {
   }
   if (!bestEnd) return null
   return diffDays(bestEnd, start) + 1
-}
-
-function addDaysLocal(d, n) {
-  const out = new Date(d)
-  out.setDate(out.getDate() + n)
-  out.setHours(0, 0, 0, 0)
-  return out
 }
 
 /**

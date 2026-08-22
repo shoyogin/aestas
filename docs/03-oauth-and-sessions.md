@@ -41,13 +41,14 @@ This doc explains how the “Sign in with Google” flow is implemented in the b
 ## Code you can look at
 
 - **Backend**
-  - `backend/main.py`: `auth_google`, `auth_callback`, `auth_me`.
-  - `backend/auth.py`: `get_google_authorize_url`, `exchange_code_for_user` (Authlib + userinfo + DB create/find + session create).
-  - `backend/session.py`: `create_session`, `get_session` (Redis get/set/delete).
+  - `backend/app/main.py`: `auth_google`, `auth_callback`, `auth_me`.
+  - `backend/app/auth.py`: `get_google_authorize_url`, `exchange_code_for_user` (Authlib + userinfo + DB create/find + session create). We do **not** request offline access: the app makes one userinfo call at login, so a refresh token would be a long-lived credential we never use.
+  - `backend/app/session.py`: `create_session`, `get_session` (Redis get/set/delete). The session holds only the user id — everything else is read from the database, so it can never go stale.
 - **Frontend**
   - `frontend/src/components/Welcome.jsx`: link to backend `/auth/google` (full URL from API base).
-  - `frontend/src/hooks/useAuth.js`: calls `GET /auth/me` (API base URL) and sets `isAuthenticated` and `hasCompletedOnboarding`.
-  - `frontend/src/App.jsx`: uses `useAuth` to decide whether to show Onboarding or WIP and to protect routes.
+  - `frontend/src/components/AuthProvider.jsx` and `src/context/authContext.js`: one component fetches `GET /auth/me` for the whole app and exposes `user`, `isAuthenticated`, `hasCompletedOnboarding`, and `refresh()`. Screens call `useAuth()` instead of fetching for themselves.
+  - `frontend/src/App.jsx`: uses `useAuth` in a `RequireAuth` wrapper to protect routes and to send unfinished users to onboarding.
+  - `frontend/src/api/client.js`: an axios interceptor catches `401` on any call and clears the signed-in user, so an expired session sends you back to the welcome screen instead of leaving blank pages.
 
 ## Single origin and cookies
 
