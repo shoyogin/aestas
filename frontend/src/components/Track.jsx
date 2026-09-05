@@ -1,6 +1,7 @@
 import Logo from './Logo'
 import CalendarArc from './CalendarArc'
 import HormoneChart from './HormoneChart'
+import ErrorBanner from './ErrorBanner'
 import { PHASE_LABELS } from '../cycle/phaseEngine'
 import { CALENDAR_WIDTH } from '../cycle/dates'
 import { useCycle } from '../hooks/useCycle'
@@ -11,6 +12,9 @@ export default function Track() {
     setSelectedDate,
     logs,
     loading,
+    saving,
+    error,
+    dismissError,
     awaitingPeriodEnd,
     phaseInfo,
     handlePeriodClick,
@@ -19,6 +23,8 @@ export default function Track() {
     FLOW_OPTIONS,
     cycleLength,
   } = useCycle()
+
+  const busy = loading || saving
 
   return (
     <div className="flex flex-col items-center px-6 py-8">
@@ -30,6 +36,7 @@ export default function Track() {
         </p>
       )}
       <div className="w-full max-w-3xl">
+        <ErrorBanner message={error} onDismiss={dismissError} className="mb-4" />
         <HormoneChart
           phase={phaseInfo.phase}
           cycleDay={phaseInfo.cycleDay}
@@ -46,7 +53,7 @@ export default function Track() {
           <button
             type="button"
             onClick={handlePeriodClick}
-            disabled={loading}
+            disabled={busy}
             className={`
               w-full rounded-2xl font-semibold py-4 px-8 text-lg transition-colors
               ${awaitingPeriodEnd
@@ -59,14 +66,17 @@ export default function Track() {
             {awaitingPeriodEnd ? 'Period Ended' : 'Period Started'}
           </button>
         </div>
-        <p className="text-powder-blush/90 text-base text-center mb-3">Flow</p>
-        <div className="flex justify-center gap-5 flex-wrap">
+        <p className="text-powder-blush/90 text-base text-center mb-3" id="flow-label">
+          Flow
+        </p>
+        <div className="flex justify-center gap-5 flex-wrap" role="group" aria-labelledby="flow-label">
           {FLOW_OPTIONS.map((opt) => (
             <button
               key={opt.id}
               type="button"
               onClick={() => handleFlowSelect(opt.id)}
-              disabled={loading}
+              disabled={busy}
+              aria-pressed={selectedLog.flow === opt.id}
               className={`
                 rounded-2xl px-6 py-3 text-base font-medium transition-colors
                 ${selectedLog.flow === opt.id

@@ -8,6 +8,8 @@
  *   2026-03-20 → day 20, luteal
  */
 
+import { addDays, diffDays, parseYMD, startOfDay, toYMD } from './dates'
+
 export const PHASE_IDS = ['menstrual', 'follicular', 'ovulation', 'luteal']
 
 export const PHASE_LABELS = {
@@ -17,28 +19,12 @@ export const PHASE_LABELS = {
   luteal: 'Luteal',
 }
 
-function parseYMD(s) {
-  const [y, m, d] = String(s).split('-').map(Number)
-  if (!y || !m || !d) return null
-  return new Date(y, m - 1, d)
-}
-
-function startOfDay(d) {
-  const out = new Date(d)
-  out.setHours(0, 0, 0, 0)
-  return out
-}
-
-function diffDays(later, earlier) {
-  return Math.round((startOfDay(later) - startOfDay(earlier)) / (24 * 60 * 60 * 1000))
-}
-
-function toYMD(d) {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
+// Phase lengths are expressed per 28-day cycle and scaled from there.
+// Keep in step with backend/app/cycle_phase.py — shared/phase-cases.json is
+// what proves the two still agree.
+const MENSTRUAL_DAYS_PER_28 = 5
+const OVULATION_DAYS_PER_28 = 3
+const LUTEAL_DAYS = 14
 
 /**
  * Latest recorded cycle start on or before selectedDate.
@@ -69,7 +55,7 @@ function nextStartAfter(startDates, start) {
  * Recorded period-end day number (1-based) for this cycle start, if any.
  */
 function recordedMenstrualEndDay(start, endDates, startDates, length) {
-  const cycleEndCap = addDaysLocal(start, length)
+  const cycleEndCap = startOfDay(addDays(start, length))
   const nextStart = nextStartAfter(startDates, start)
   const cap = nextStart && nextStart < cycleEndCap ? nextStart : cycleEndCap
   let bestEnd = null
@@ -82,36 +68,45 @@ function recordedMenstrualEndDay(start, endDates, startDates, length) {
   return diffDays(bestEnd, start) + 1
 }
 
-function addDaysLocal(d, n) {
-  const out = new Date(d)
-  out.setDate(out.getDate() + n)
-  out.setHours(0, 0, 0, 0)
-  return out
-}
-
 /**
  * Default menstrual length scaled from ~5 days on a 28-day cycle.
  */
 function defaultMenstrualDays(length) {
-  return Math.max(3, Math.round((length * 5) / 28))
+  return Math.max(3, Math.round((length * MENSTRUAL_DAYS_PER_28) / 28))
 }
 
 /**
- * Ovulation: 3-day window centered on estimated ovulation day (length - 14).
+ * Width of the ovulation window, scaled to the cycle like every other phase:
+ * ~3 days at 28, wider on longer cycles.
  */
-function ovulationWindow(length) {
-  const ovDay = Math.max(1, length - 14)
-  let ovStart = ovDay - 1
-  let ovEnd = ovDay + 1
-  if (ovStart < 1) {
-    ovStart = 1
-    ovEnd = Math.min(length, 3)
-  }
+function ovulationDays(length) {
+  return Math.max(3, Math.round((length * OVULATION_DAYS_PER_28) / 28))
+}
+
+/**
+ * The ovulation window and the day it centres on. The window leans earlier
+ * than ovulation itself, because the fertile window is mostly the days
+ * leading up to it.
+ */
+export function ovulationWindow(length) {
+  const width = ovulationDays(length)
+  const before = Math.ceil((width - 1) / 2)
+
+  // The luteal phase runs ~14 days whatever the cycle length, so ovulation is
+  // counted back from the end. Below roughly 21 days that rule puts ovulation
+  // on or before the period itself; keep menstrual plus one follicular day
+  // ahead of it instead, so every phase still exists.
+  const earliestStart = defaultMenstrualDays(length) + 2
+  let ovDay = Math.max(length - LUTEAL_DAYS, earliestStart + before)
+
+  let ovStart = ovDay - before
+  let ovEnd = ovStart + width - 1
   if (ovEnd > length) {
     ovEnd = length
-    ovStart = Math.max(1, length - 2)
+    ovStart = Math.max(1, ovEnd - width + 1)
+    ovDay = Math.min(ovDay, ovEnd)
   }
-  return { ovStart, ovEnd }
+  return { ovStart, ovEnd, ovDay }
 }
 
 function assignPhase(cycleDay, mEnd, ovStart, ovEnd, length) {
@@ -147,7 +142,7 @@ export function getPhaseForDate({ selectedDate, cycleLength, startDates, endDate
   }
   const cycleDay = ((rawDay - 1) % length) + 1
 
-  const { ovStart, ovEnd } = ovulationWindow(length)
+  const { ovStart, ovEnd, ovDay } = ovulationWindow(length)
   const maxMenstrual = Math.max(0, ovStart - 1)
   const recorded = recordedMenstrualEndDay(start, endDates, startDates, length)
   const defaultM = defaultMenstrualDays(length)
@@ -166,6 +161,6 @@ export function getPhaseForDate({ selectedDate, cycleLength, startDates, endDate
     cycleStart: toYMD(start),
     cycleLength: length,
     windows,
-    ovulationDay: Math.max(1, length - 14),
+    ovulationDay: ovDay,
   }
 }

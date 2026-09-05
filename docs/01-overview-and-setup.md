@@ -40,7 +40,7 @@ aestas/
 │   ├── src/
 │   │   ├── components/ # Welcome, Onboarding, WIP, Logo
 │   │   ├── api/       # Axios client and API calls (onboarding)
-│   │   └── hooks/     # useAuth (session check)
+│   │   ├── context/   # authContext (the signed-in user)
 │   ├── index.html
 │   ├── vite.config.js
 │   └── tailwind.config.js
@@ -68,7 +68,7 @@ aestas/
 
 ### Option B: Backend and frontend both locally
 
-- **Backend**: From `backend/`, install Python deps, set `DATABASE_URL`, `REDIS_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and run `uvicorn main:app --reload`.
+- **Backend**: From `backend/`, install Python deps (`pip install -r requirements-dev.txt`), set `DATABASE_URL`, `REDIS_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, apply the schema with `alembic upgrade head`, then run `uvicorn app.main:app --reload`.
 - **Frontend**: From `frontend/`, run `npm install` and `npm run dev`. The frontend calls the backend at `http://localhost:8000` (default; override with `VITE_API_URL` in `frontend/.env`).
 - **Database and Redis**: Run PostgreSQL and Redis (e.g. with Docker: `docker run -p 5432:5432 -e POSTGRES_USER=aestas -e POSTGRES_PASSWORD=aestas -e POSTGRES_DB=aestas postgres:16-alpine` and `docker run -p 6379:6379 redis:7-alpine`).
 

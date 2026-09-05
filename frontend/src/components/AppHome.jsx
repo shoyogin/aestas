@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Outlet } from 'react-router-dom'
-import { api } from '../api/client'
+import { errorMessage } from '../api/client'
 import { getDailyLogs, upsertDailyLog } from '../api/dailyLogs'
 import { getCycleContext } from '../api/cycle'
+import { getPhaseContent } from '../api/content'
+import { useAuth } from '../context/authContext'
 import { getPhaseForDate } from '../cycle/phaseEngine'
-import { toYMD, startOfMonth, endOfMonth } from '../cycle/dates'
+import { toYMD, today, startOfMonth, endOfMonth } from '../cycle/dates'
 import { CycleContext } from '../hooks/useCycle'
 
 const FLOW_OPTIONS = [
@@ -14,16 +16,21 @@ const FLOW_OPTIONS = [
   { id: 'heavy', label: 'Heavy' },
 ]
 
+const EMPTY_LOG = { is_period: false, flow: null }
+
 export default function AppHome() {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const [selectedDate, setSelectedDate] = useState(() => new Date(today))
+  const { user, setUser } = useAuth()
+  const [selectedDate, setSelectedDate] = useState(today)
   const [logs, setLogs] = useState({})
   const [loading, setLoading] = useState(true)
-  const [awaitingPeriodEnd, setAwaitingPeriodEnd] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
   const [cycleLength, setCycleLength] = useState(null)
   const [cycleStartDates, setCycleStartDates] = useState([])
   const [cycleEndDates, setCycleEndDates] = useState([])
+  const [phaseContent, setPhaseContent] = useState(null)
+
+  const awaitingPeriodEnd = !!user?.awaiting_period_end
 
   const fromDate = toYMD(startOfMonth(selectedDate))
   const toDate = toYMD(endOfMonth(selectedDate))
@@ -37,8 +44,9 @@ export default function AppHome() {
         map[entry.date] = { is_period: entry.is_period, flow: entry.flow }
       })
       setLogs(map)
-    } catch {
+    } catch (err) {
       setLogs({})
+      setError(errorMessage(err, 'Could not load your logs.'))
     } finally {
       setLoading(false)
     }
@@ -48,29 +56,14 @@ export default function AppHome() {
     fetchLogs()
   }, [fetchLogs])
 
-  useEffect(() => {
-    let cancelled = false
-    api
-      .get('/auth/me')
-      .then(({ data }) => {
-        if (!cancelled) setAwaitingPeriodEnd(!!data.awaiting_period_end)
-      })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
   const fetchCycleContext = useCallback(async () => {
     try {
       const data = await getCycleContext()
       setCycleLength(data.cycle_length ?? null)
       setCycleStartDates(data.cycle_start_dates ?? [])
       setCycleEndDates(data.cycle_end_dates ?? [])
-    } catch {
-      setCycleLength(null)
-      setCycleStartDates([])
-      setCycleEndDates([])
+    } catch (err) {
+      setError(errorMessage(err, 'Could not load your cycle.'))
     }
   }, [])
 
@@ -78,9 +71,23 @@ export default function AppHome() {
     fetchCycleContext()
   }, [fetchCycleContext])
 
+  useEffect(() => {
+    // Panel copy lives on the server so it is never written in two places.
+    let cancelled = false
+    getPhaseContent()
+      .then((data) => !cancelled && setPhaseContent(data))
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const selectedYMD = toYMD(selectedDate)
-  const selectedLog = logs[selectedYMD] || { is_period: false, flow: null }
-  const monthLabel = selectedDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+  const selectedLog = logs[selectedYMD] || EMPTY_LOG
+  const monthLabel = selectedDate.toLocaleDateString(undefined, {
+    month: 'long',
+    year: 'numeric',
+  })
 
   const phaseInfo = useMemo(
     () =>
@@ -94,51 +101,72 @@ export default function AppHome() {
   )
 
   const handlePeriodClick = async () => {
-    const ymd = selectedYMD
+    setSaving(true)
+    setError(null)
     try {
-      const res = await upsertDailyLog(ymd, {
+      const res = await upsertDailyLog(selectedYMD, {
         is_period: true,
         period_event: awaitingPeriodEnd ? 'end' : 'start',
       })
-      setAwaitingPeriodEnd(!!res.awaiting_period_end)
+      setUser((prev) =>
+        prev ? { ...prev, awaiting_period_end: !!res.awaiting_period_end } : prev,
+      )
       if (res.cycle_start_dates) setCycleStartDates(res.cycle_start_dates)
       if (res.cycle_end_dates) setCycleEndDates(res.cycle_end_dates)
       setLogs((prev) => ({
         ...prev,
-        [ymd]: { ...(prev[ymd] || { is_period: false, flow: null }), is_period: true },
+        [selectedYMD]: { ...(prev[selectedYMD] || EMPTY_LOG), is_period: true },
       }))
-    } catch {
-      /* keep UI */
+    } catch (err) {
+      // Silently ignoring this made the button look like it did nothing.
+      setError(errorMessage(err, 'Could not save that. Please try again.'))
+    } finally {
+      setSaving(false)
     }
   }
 
   const handleFlowSelect = async (flowId) => {
     const value = selectedLog.flow === flowId ? null : flowId
+    setSaving(true)
+    setError(null)
     try {
-      await upsertDailyLog(selectedYMD, { flow: value })
+      const res = await upsertDailyLog(selectedYMD, { flow: value })
       setLogs((prev) => ({
         ...prev,
-        [selectedYMD]: { ...selectedLog, flow: value },
+        [selectedYMD]: { ...(prev[selectedYMD] || EMPTY_LOG), flow: res.flow ?? null },
       }))
-    } catch {
-      /* keep UI */
+    } catch (err) {
+      setError(errorMessage(err, 'Could not save that flow. Please try again.'))
+    } finally {
+      setSaving(false)
     }
   }
 
-  const value = {
-    selectedDate,
-    setSelectedDate,
-    logs,
-    loading,
-    awaitingPeriodEnd,
-    cycleLength,
-    selectedLog,
-    monthLabel,
-    phaseInfo,
-    handlePeriodClick,
-    handleFlowSelect,
-    FLOW_OPTIONS,
-  }
+  const value = useMemo(
+    () => ({
+      selectedDate,
+      setSelectedDate,
+      logs,
+      loading,
+      saving,
+      error,
+      dismissError: () => setError(null),
+      awaitingPeriodEnd,
+      cycleLength,
+      selectedLog,
+      monthLabel,
+      phaseInfo,
+      phaseContent,
+      handlePeriodClick,
+      handleFlowSelect,
+      FLOW_OPTIONS,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      selectedDate, logs, loading, saving, error, awaitingPeriodEnd,
+      cycleLength, selectedLog, monthLabel, phaseInfo, phaseContent,
+    ],
+  )
 
   return (
     <CycleContext.Provider value={value}>

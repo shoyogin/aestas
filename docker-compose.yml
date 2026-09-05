@@ -8,6 +8,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: dev
     image: aestas-frontend
     ports:
       - "5173:5173"
@@ -31,17 +32,22 @@ services:
       REDIS_URL: redis://redis:6379/0
       FRONTEND_ORIGIN: http://localhost:5173
       BACKEND_PUBLIC_URL: http://localhost:8000
+      # Local dev is plain HTTP; set this to true anywhere served over HTTPS.
+      COOKIE_SECURE: "false"
+      LOG_LEVEL: INFO
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      # Readiness, not liveness: the frontend should wait for a backend that can
+      # actually reach Postgres and Redis, not merely one that has booted.
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/ready"]
       interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 10s
+      retries: 5
+      start_period: 20s
 
   postgres:
     image: postgres:16-alpine

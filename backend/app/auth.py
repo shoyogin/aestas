@@ -1,12 +1,15 @@
 """Google OAuth 2.0 flow using Authlib."""
+import logging
 from urllib.parse import urlencode
 
 from authlib.integrations.httpx_client import AsyncOAuth2Client
 
-from config import settings
-from database import SessionLocal
-from models import User
-from session import create_session
+from app.config import settings
+from app.database import SessionLocal
+from app.models import User
+from app.session import create_session
+
+logger = logging.getLogger(__name__)
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -15,15 +18,17 @@ SCOPES = ["openid", "email", "profile"]
 
 
 def get_google_authorize_url(redirect_uri: str, state: str) -> str:
-    """Build the URL to send the user to Google for login."""
+    """Build the URL to send the user to Google for login.
+
+    No offline access: we only need one userinfo call at login, so asking for a
+    refresh token would collect a long-lived credential we never use.
+    """
     params = {
         "client_id": settings.google_client_id,
         "redirect_uri": redirect_uri,
         "response_type": "code",
         "scope": " ".join(SCOPES),
         "state": state,
-        "access_type": "offline",
-        "prompt": "consent",
     }
     return f"{GOOGLE_AUTH_URL}?{urlencode(params)}"
 
@@ -62,13 +67,13 @@ async def exchange_code_for_user(code: str, redirect_uri: str) -> dict:
             db.add(user)
             db.commit()
             db.refresh(user)
-        session_token = create_session(
-            user.id,
-            user.email,
-            user.has_completed_onboarding,
-        )
+            logger.info("Created user %s", user.id)
+        elif user.email != email:
+            user.email = email
+            db.commit()
+            db.refresh(user)
         return {
-            "session_token": session_token,
+            "session_token": create_session(user.id),
             "redirect_path": "/onboarding" if not user.has_completed_onboarding else "/app",
         }
     finally:

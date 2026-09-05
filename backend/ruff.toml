@@ -1,3 +1,19 @@
-# FastAPI: Depends() in defaults is the documented pattern (B008).
+line-length = 100
+
 [lint]
+select = [
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "W",    # warnings
+    "I",    # import sorting
+    "B",    # bugbear
+    "UP",   # pyupgrade
+    "C4",   # comprehensions
+    "SIM",  # simplify
+]
+# FastAPI: Depends() in defaults is the documented pattern.
 ignore = ["B008"]
+
+[lint.per-file-ignores]
+# Alembic templates the revision identifiers; imports there follow its own style.
+"migrations/*" = ["I001"]

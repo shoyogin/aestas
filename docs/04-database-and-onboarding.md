@@ -8,7 +8,7 @@ We use **PostgreSQL** as the main database. It holds data that must **persist fo
 
 ## Schema: the `users` table
 
-The table is defined in `backend/models.py` with **SQLAlchemy** (an ORM: we define Python classes that map to tables).
+The table is defined in `backend/app/models.py` with **SQLAlchemy** (an ORM: we define Python classes that map to tables).
 
 - **id** — Auto-increment primary key.
 - **google_id** — Unique ID from Google (so we can find the user when they log in again).
@@ -18,7 +18,13 @@ The table is defined in `backend/models.py` with **SQLAlchemy** (an ORM: we defi
 
 We also have a property `has_completed_onboarding`: it is `True` when `cycle_length` is not `NULL`.
 
-On app startup (`main.py`), we call `Base.metadata.create_all(bind=engine)` so the table is created if it doesn’t exist. In a production setup you’d usually use **migrations** (e.g. Alembic) instead of creating tables on startup.
+Alongside `users` sit `daily_logs` (one row per user per day), `follow_requests`
+(see [08-circle-follows.md](08-circle-follows.md)), and `profile_pictures` —
+one avatar per account, kept out of `users` so the image bytes do not ride
+along on every query that loads a user (see
+[09-profile-pictures.md](09-profile-pictures.md)).
+
+Schema changes are handled by **Alembic migrations** in `backend/migrations/`, applied by `docker-entrypoint.sh` before the app starts serving. This used to be `Base.metadata.create_all()` plus a few hand-written `ALTER TABLE` helpers running at import time, which meant importing the app opened a database connection and several worker processes could race each other over the same DDL. `alembic check` in CI fails the build if the models and the migrations disagree.
 
 ## Onboarding flow
 
@@ -26,16 +32,17 @@ On app startup (`main.py`), we call `Base.metadata.create_all(bind=engine)` so t
 2. Backend redirects to **/onboarding**.
 3. **Frontend** shows the onboarding form: “How many days is your typical cycle?” with a number input (21–45) and an info banner (Tailwind styling).
 4. User submits → frontend sends **POST /api/users/onboarding** with `{ "cycle_length": 28 }` (with credentials so the session cookie is sent).
-5. **Backend** (`routers/users.py`): `get_current_user` ensures the request has a valid session and loads the `User`. We update that user’s `cycle_length` and save. Optionally we could **refresh the session** in Redis so `has_completed_onboarding` is updated without logging out (currently the frontend just navigates to `/app` and the next `/auth/me` will reflect the new state).
+5. **Backend** (`app/routers/users.py`): `get_current_user` ensures the request has a valid session and loads the `User`. We update that user’s `cycle_length` and save. The session in Redis holds only the user id, so there is nothing to refresh — `has_completed_onboarding` is read from the database on every `/auth/me`. The frontend calls `refresh()` on its auth context after onboarding so the route guards see the new state immediately.
 6. Frontend redirects to **/app** (WIP page).
 
 ## Code to look at
 
 - **Backend**
-  - `backend/models.py`: `User` model and `has_completed_onboarding`.
-  - `backend/database.py`: engine, `SessionLocal`, `get_db`.
-  - `backend/routers/users.py`: `POST /onboarding` body validation (21–45 days) and update.
-  - `backend/main.py`: `get_current_user` (uses session from Redis to load `User` from DB).
+  - `backend/app/models.py`: `User` model and `has_completed_onboarding`.
+  - `backend/app/database.py`: engine, `SessionLocal`, `get_db`.
+  - `backend/migrations/`: Alembic revisions — the only place the schema changes.
+  - `backend/app/routers/users.py`: `POST /onboarding` body validation (15–45 days) and update.
+  - `backend/app/dependencies.py`: `get_current_user` (uses session from Redis to load `User` from DB).
 - **Frontend**
   - `frontend/src/components/Onboarding.jsx`: form state, range 21–45, info banner, call to `submitOnboarding(cycleLength)`.
   - `frontend/src/api/onboarding.js`: `submitOnboarding` → `POST /users/onboarding` with `cycle_length`.

@@ -1,6 +1,5 @@
-# Pre-commit hooks: run `pre-commit install` once, then `pre-commit run --all-files` or rely on git hooks
-# See docs/pre-commit.md
-
+# Pre-commit hooks: run `pre-commit install` once, then `pre-commit run --all-files`
+# or rely on git hooks. See docs/06-pre-commit.md
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -13,8 +12,10 @@ repos:
         args: [--maxkb=500]
       - id: detect-private-key
 
+  # Keep this version in step with backend/requirements-dev.txt, so a commit
+  # that passes locally also passes CI.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.11
+    rev: v0.16.3
     hooks:
       - id: ruff
         args: [--fix]
@@ -24,6 +25,7 @@ repos:
     hooks:
       - id: eslint
         name: eslint (frontend)
-        entry: bash -c 'cd frontend && npx eslint . --ext js,jsx'
+        entry: bash -c 'cd frontend && npx eslint . --ext js,jsx --max-warnings 0'
         language: system
+        pass_filenames: false
         files: ^frontend/.*\.(js|jsx)$

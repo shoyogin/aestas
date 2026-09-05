@@ -1,4 +1,5 @@
-import { PHASE_LABELS } from '../cycle/phaseEngine'
+import { useMemo } from 'react'
+import { PHASE_LABELS, ovulationWindow } from '../cycle/phaseEngine'
 import { HORMONE_SERIES, sampleHormones } from '../cycle/hormoneCurves'
 
 const W = 640
@@ -13,12 +14,22 @@ function polyline(points, key, xScale, yScale) {
 
 export default function HormoneChart({ phase, cycleDay, cycleLength, windows, ovulationDay }) {
   const length = Number(cycleLength)
-  if (!Number.isFinite(length) || length < 2) {
+  const valid = Number.isFinite(length) && length >= 2
+  // Fall back to the engine rather than re-deriving the rule here: a second
+  // copy of `length - 14` would put the LH spike on the wrong day.
+  const ovDay = ovulationDay || (valid ? ovulationWindow(length).ovDay : 1)
+
+  // Sampling and path building are pure functions of the cycle; recomputing
+  // them on every render redraws the whole SVG for nothing.
+  const points = useMemo(
+    () => (valid ? sampleHormones(length, ovDay) : []),
+    [valid, length, ovDay],
+  )
+
+  if (!valid) {
     return null
   }
 
-  const ovDay = ovulationDay || Math.max(1, length - 14)
-  const points = sampleHormones(length, ovDay)
   const innerW = W - PAD.left - PAD.right
   const innerH = H - PAD.top - PAD.bottom
   const xScale = (day) => PAD.left + ((day - 1) / (length - 1)) * innerW

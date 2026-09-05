@@ -1,30 +1,41 @@
+import { useSearchParams } from 'react-router-dom'
 import Logo from './Logo'
-import { api } from '../api/client'
+import ErrorBanner from './ErrorBanner'
+import { useAuth } from '../context/authContext'
+
+const LOGIN_ERRORS = {
+  no_code: 'Google did not send us back a login code. Please try again.',
+  invalid_state: 'That login link expired. Please try signing in again.',
+  oauth_failed: 'We could not complete the sign-in with Google. Please try again.',
+  access_denied: 'Sign-in was cancelled.',
+}
 
 export default function Welcome() {
+  const { loginUrl } = useAuth()
+  const [params] = useSearchParams()
+  const error = params.get('error')
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-night-bordeaux">
       <div className="max-w-md w-full text-center space-y-10">
         <Logo className="mx-auto w-16 h-16 text-powder-blush" />
         <div>
-          <h1 className="text-4xl font-bold text-peach-fuzz tracking-tight">
-            Aestas
-          </h1>
-          <p className="mt-2 text-powder-blush/90 text-lg">
-            It&apos;s your time to bloom.
-          </p>
+          <h1 className="text-4xl font-bold text-peach-fuzz tracking-tight">Aestas</h1>
+          <p className="mt-2 text-powder-blush/90 text-lg">It&apos;s your time to bloom.</p>
         </div>
+        {/* Login failures redirect here with ?error=…; they used to be invisible. */}
+        <ErrorBanner
+          message={error ? LOGIN_ERRORS[error] || 'Sign-in failed. Please try again.' : null}
+        />
         <div className="flex flex-col gap-4 pt-4">
           <a
-            href={`${api.defaults.baseURL}/auth/google`}
+            href={loginUrl}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-dusty-mauve hover:bg-burnt-rose text-white font-semibold py-3 px-6 transition-colors shadow-lg"
           >
             <GoogleIcon className="w-5 h-5" />
             Sign in with Google
           </a>
-          <p className="text-powder-blush/70 text-sm">
-            Use one account to sign up or log in.
-          </p>
+          <p className="text-powder-blush/70 text-sm">Use one account to sign up or log in.</p>
         </div>
       </div>
     </div>
@@ -33,7 +44,7 @@ export default function Welcome() {
 
 function GoogleIcon({ className }) {
   return (
-    <svg className={className} viewBox="0 0 24 24">
+    <svg className={className} viewBox="0 0 24 24" aria-hidden>
       <path
         fill="currentColor"
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

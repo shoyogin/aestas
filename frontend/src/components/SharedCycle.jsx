@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Logo from './Logo'
+import Avatar from './Avatar'
+import ErrorBanner from './ErrorBanner'
 import { getSharedCycle } from '../api/follows'
+import { getPhaseContent } from '../api/content'
+import { errorMessage } from '../api/client'
 
 const BTN =
   'rounded-xl bg-dusty-mauve/40 hover:bg-dusty-mauve/60 text-peach-fuzz font-medium px-4 py-2 transition-colors'
 
+// Fallbacks only; the server sends the authoritative order and headings.
 const PANEL_ORDER = ['food', 'activity', 'mood', 'drive']
 const HEADINGS = {
   food: 'Food',
@@ -18,19 +23,27 @@ export default function SharedCycle() {
   const { followId } = useParams()
   const navigate = useNavigate()
   const [data, setData] = useState(null)
+  const [content, setContent] = useState(null)
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    let cancelled = false
     getSharedCycle(followId)
-      .then(setData)
-      .catch((err) => setError(err.response?.data?.detail || 'Could not load.'))
+      .then((res) => !cancelled && setData(res))
+      .catch((err) => !cancelled && setError(errorMessage(err, 'Could not load.')))
+    getPhaseContent()
+      .then((res) => !cancelled && setContent(res))
+      .catch(() => { })
+    return () => {
+      cancelled = true
+    }
   }, [followId])
 
   if (error) {
     return (
       <div className="min-h-screen bg-night-bordeaux text-peach-fuzz px-6 py-10">
         <button type="button" className={BTN} onClick={() => navigate('/circle')}>← Circle</button>
-        <p className="mt-6">{error}</p>
+        <ErrorBanner message={error} className="mt-6" />
       </div>
     )
   }
@@ -44,7 +57,9 @@ export default function SharedCycle() {
   }
 
   const panels = data.panels || {}
-  const keys = PANEL_ORDER.filter((k) => panels[k])
+  const order = content?.panel_order ?? PANEL_ORDER
+  const headings = content?.panel_headings ?? HEADINGS
+  const keys = order.filter((k) => panels[k])
 
   return (
     <div className="min-h-screen bg-night-bordeaux text-peach-fuzz px-6 py-10">
@@ -55,14 +70,21 @@ export default function SharedCycle() {
           </button>
           <Logo className="w-12 h-12 text-powder-blush" />
         </div>
-        <h1 className="text-3xl font-bold mb-1">{data.nickname}</h1>
+        <div className="flex items-center gap-4 mb-1">
+          <Avatar
+            nickname={data.nickname}
+            version={data.avatar_updated_at}
+            className="w-16 h-16 text-lg"
+          />
+          <h1 className="text-3xl font-bold min-w-0 truncate">{data.nickname}</h1>
+        </div>
         <p className="text-powder-blush mb-2">
           {data.phase_label
             ? `Day ${data.cycle_day} · ${data.phase_label}`
             : 'No cycle start on file yet.'}
         </p>
         <p className="text-powder-blush/80 text-sm mb-4">
-          Viewing as {data.link_type === 'partner' ? 'girlfriend / partner' : 'friend'}
+          Viewing as {data.link_type === 'partner' ? 'partner' : 'friend'}
         </p>
         {panels.support && (
           <p className="rounded-xl border border-powder-blush/30 bg-dusty-mauve/20 p-4 mb-6 text-lg">
@@ -78,7 +100,7 @@ export default function SharedCycle() {
                 className="rounded-2xl border border-powder-blush/30 bg-dusty-mauve/15 p-5"
               >
                 <h2 className="text-powder-blush text-sm uppercase tracking-wide mb-1">
-                  {HEADINGS[key]}
+                  {headings[key] ?? key}
                 </h2>
                 <h3 className="font-bold text-xl mb-3">{p.title}</h3>
                 <ul className="list-disc list-inside space-y-2 text-powder-blush">
