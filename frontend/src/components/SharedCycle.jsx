@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Logo from './Logo'
+import Avatar from './Avatar'
 import ErrorBanner from './ErrorBanner'
 import { getSharedCycle } from '../api/follows'
 import { getPhaseContent } from '../api/content'
@@ -32,7 +33,7 @@ export default function SharedCycle() {
       .catch((err) => !cancelled && setError(errorMessage(err, 'Could not load.')))
     getPhaseContent()
       .then((res) => !cancelled && setContent(res))
-      .catch(() => {})
+      .catch(() => { })
     return () => {
       cancelled = true
     }
@@ -69,14 +70,21 @@ export default function SharedCycle() {
           </button>
           <Logo className="w-12 h-12 text-powder-blush" />
         </div>
-        <h1 className="text-3xl font-bold mb-1">{data.nickname}</h1>
+        <div className="flex items-center gap-4 mb-1">
+          <Avatar
+            nickname={data.nickname}
+            version={data.avatar_updated_at}
+            className="w-16 h-16 text-lg"
+          />
+          <h1 className="text-3xl font-bold min-w-0 truncate">{data.nickname}</h1>
+        </div>
         <p className="text-powder-blush mb-2">
           {data.phase_label
             ? `Day ${data.cycle_day} · ${data.phase_label}`
             : 'No cycle start on file yet.'}
         </p>
         <p className="text-powder-blush/80 text-sm mb-4">
-          Viewing as {data.link_type === 'partner' ? 'girlfriend / partner' : 'friend'}
+          Viewing as {data.link_type === 'partner' ? 'partner' : 'friend'}
         </p>
         {panels.support && (
           <p className="rounded-xl border border-powder-blush/30 bg-dusty-mauve/20 p-4 mb-6 text-lg">

@@ -3,7 +3,7 @@
 Aestas lets you **link profiles by nickname**, with **consent**. There is no gender field. The **link type** is what matters:
 
 - **Friend** — follow someone’s cycle at a respectful distance.
-- **Girlfriend / partner** — see fuller “how to support them this week” guidance.
+- **Partner** — see fuller “how to support them this week” guidance.
 
 The person whose cycle would be shared **accepts or refuses**. They can revoke later.
 
@@ -32,7 +32,7 @@ Follows work the way Instagram’s do. A request sits **pending** until the targ
 acts on it, and until then the only thing the requester can do is **withdraw**
 it and send it again.
 
-1. Search a nickname, pick **Friend** or **Girlfriend / partner**, send request.
+1. Search a nickname, pick **Friend** or **Partner**, send request.
 2. They see it in **Inbox**. Pending requests do **not** expire.
 3. **Accept** or **Refuse**. Refuse does not explain why; the requester just is not connected.
 4. At most **one accepted partner** inbound at a time. Many friends are allowed.

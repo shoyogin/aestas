@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Logo from './Logo'
+import Avatar from './Avatar'
 import ErrorBanner from './ErrorBanner'
 import {
   acceptFollow,
@@ -22,7 +23,7 @@ const BTN =
 const INPUT =
   'w-full rounded-xl border-2 border-dusty-mauve/50 bg-night-bordeaux/80 text-peach-fuzz px-4 py-3 focus:border-powder-blush outline-none'
 
-const linkLabel = (type) => (type === 'partner' ? 'girlfriend / partner' : 'friend')
+const linkLabel = (type) => (type === 'partner' ? 'partner' : 'friend')
 
 function Section({ title, children, empty }) {
   return (
@@ -39,6 +40,19 @@ function Row({ children }) {
     <li className="flex items-center justify-between gap-3 rounded-xl border border-powder-blush/30 p-3">
       {children}
     </li>
+  )
+}
+
+/** Picture, nickname, and an optional line under it. Used by every list here. */
+function Person({ nickname, version, detail, className = '' }) {
+  return (
+    <span className={`flex items-center gap-3 min-w-0 ${className}`}>
+      <Avatar nickname={nickname} version={version} className="w-10 h-10 text-sm" />
+      <span className="min-w-0">
+        <span className="block font-medium truncate">{nickname || 'Unknown'}</span>
+        {detail && <span className="text-powder-blush/80 text-sm">{detail}</span>}
+      </span>
+    </span>
   )
 }
 
@@ -189,7 +203,7 @@ export default function Circle() {
               aria-pressed={linkType === 'partner'}
               className={`${BTN} flex-1 ${linkType === 'partner' ? 'ring-2 ring-powder-blush' : ''}`}
             >
-              Girlfriend / partner
+              Partner
             </button>
           </div>
           <button
@@ -204,7 +218,7 @@ export default function Circle() {
           <ul className="space-y-2 mb-10">
             {hits.map((h) => (
               <Row key={h.nickname}>
-                <span className="font-medium truncate">{h.nickname}</span>
+                <Person nickname={h.nickname} />
                 <button
                   type="button"
                   className={BTN}
@@ -222,10 +236,17 @@ export default function Circle() {
           <ul className="space-y-2">
             {inbox.map((row) => (
               <li key={row.id} className="rounded-xl border border-powder-blush/30 p-3">
-                <p className="mb-2">
-                  <strong>{row.nickname || 'Someone'}</strong> wants to follow as{' '}
-                  {linkLabel(row.link_type)}
-                </p>
+                <div className="flex items-center gap-3 mb-3">
+                  <Avatar
+                    nickname={row.nickname}
+                    version={row.avatar_updated_at}
+                    className="w-10 h-10 text-sm"
+                  />
+                  <p className="min-w-0">
+                    <strong>{row.nickname || 'Someone'}</strong> wants to follow as{' '}
+                    {linkLabel(row.link_type)}
+                  </p>
+                </div>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -257,12 +278,11 @@ export default function Circle() {
           <ul className="space-y-2">
             {requests.map((row) => (
               <Row key={row.id}>
-                <span className="min-w-0">
-                  <span className="block font-medium truncate">{row.nickname || 'Unknown'}</span>
-                  <span className="text-powder-blush/80 text-sm">
-                    Pending · {linkLabel(row.link_type)}
-                  </span>
-                </span>
+                <Person
+                  nickname={row.nickname}
+                  version={row.avatar_updated_at}
+                  detail={`Pending · ${linkLabel(row.link_type)}`}
+                />
                 <button
                   type="button"
                   className={BTN}
@@ -283,11 +303,13 @@ export default function Circle() {
           <ul className="space-y-2">
             {following.map((row) => (
               <Row key={row.id}>
-                <Link
-                  to={`/circle/${row.id}`}
-                  className="min-w-0 font-medium underline decoration-powder-blush truncate"
-                >
-                  {row.nickname || 'Unknown'} · {linkLabel(row.link_type)}
+                <Link to={`/circle/${row.id}`} className="min-w-0">
+                  <Person
+                    nickname={row.nickname}
+                    version={row.avatar_updated_at}
+                    detail={linkLabel(row.link_type)}
+                    className="underline decoration-powder-blush decoration-from-font"
+                  />
                 </Link>
                 <button
                   type="button"
@@ -311,10 +333,11 @@ export default function Circle() {
           <ul className="space-y-2">
             {followers.map((row) => (
               <Row key={row.id}>
-                <span className="min-w-0">
-                  <span className="block font-medium truncate">{row.nickname || 'Unknown'}</span>
-                  <span className="text-powder-blush/80 text-sm">{linkLabel(row.link_type)}</span>
-                </span>
+                <Person
+                  nickname={row.nickname}
+                  version={row.avatar_updated_at}
+                  detail={linkLabel(row.link_type)}
+                />
                 <button
                   type="button"
                   className={BTN}

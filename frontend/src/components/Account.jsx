@@ -1,22 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Logo from './Logo'
+import Avatar from './Avatar'
 import ErrorBanner from './ErrorBanner'
 import { errorMessage } from '../api/client'
 import { logout } from '../api/auth'
 import { patchNickname } from '../api/follows'
 import { getCycleContext } from '../api/cycle'
+import { AVATAR_ACCEPT, avatarFileError, deleteAvatar, uploadAvatar } from '../api/avatar'
 import { useAuth } from '../context/authContext'
 
 const BTN =
   'rounded-xl bg-dusty-mauve/40 hover:bg-dusty-mauve/60 text-peach-fuzz font-medium px-4 py-3 transition-colors focus:outline-none focus:ring-2 focus:ring-powder-blush/50 disabled:opacity-50'
 const INPUT =
   'w-full rounded-xl border-2 border-dusty-mauve/50 bg-night-bordeaux/80 text-peach-fuzz px-4 py-3 focus:border-powder-blush outline-none'
-
-function initials(name, email) {
-  const s = (name || email || '?').replace(/^_/, '')
-  return s.slice(0, 2).toUpperCase()
-}
 
 export default function Account() {
   const { user, setUser } = useAuth()
@@ -26,9 +23,12 @@ export default function Account() {
   const [info, setInfo] = useState(null)
   const [saving, setSaving] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [pictureBusy, setPictureBusy] = useState(false)
+  const fileInput = useRef(null)
 
   const email = user?.email || ''
   const nickname = user?.nickname || ''
+  const avatarVersion = user?.avatar_updated_at || null
 
   useEffect(() => {
     setNickDraft(user?.nickname || '')
@@ -43,6 +43,42 @@ export default function Account() {
       cancelled = true
     }
   }, [])
+
+  /** Run a picture change and fold the new version back into the auth user,
+   *  which is what every avatar on screen reads its cache key from. */
+  const runPictureChange = async (action, successMessage) => {
+    setError(null)
+    setInfo(null)
+    setPictureBusy(true)
+    try {
+      const data = await action()
+      setUser((prev) =>
+        prev ? { ...prev, avatar_updated_at: data?.avatar_updated_at ?? null } : prev,
+      )
+      setInfo(successMessage)
+    } catch (err) {
+      setError(errorMessage(err, 'Could not update your picture.'))
+    } finally {
+      setPictureBusy(false)
+    }
+  }
+
+  const choosePicture = (e) => {
+    const file = e.target.files?.[0]
+    // Reset first: picking the same file twice has to fire onChange again.
+    e.target.value = ''
+    if (!file) return
+    const problem = avatarFileError(file)
+    if (problem) {
+      setInfo(null)
+      setError(problem)
+      return
+    }
+    runPictureChange(() => uploadAvatar(file), 'Profile picture updated.')
+  }
+
+  const removePicture = () =>
+    runPictureChange(deleteAvatar, 'Profile picture removed.')
 
   const saveNick = async (e) => {
     e.preventDefault()
@@ -84,16 +120,60 @@ export default function Account() {
           </p>
         )}
 
-        <div className="flex items-center gap-4 rounded-2xl border border-powder-blush/30 bg-dusty-mauve/15 px-4 py-4">
-          <span className="flex-shrink-0 w-14 h-14 rounded-full bg-burnt-rose text-peach-fuzz font-semibold flex items-center justify-center text-lg">
-            {initials(nickname, email)}
-          </span>
-          <div className="min-w-0">
-            <p className="font-semibold text-peach-fuzz truncate">
-              {nickname || 'No nickname yet'}
-            </p>
-            <p className="text-powder-blush text-sm truncate">{email || '—'}</p>
+        <div className="rounded-2xl border border-powder-blush/30 bg-dusty-mauve/15 px-4 py-4">
+          <div className="flex items-center gap-4">
+            <Avatar
+              self
+              version={avatarVersion}
+              nickname={nickname}
+              email={email}
+              className="w-16 h-16 text-lg"
+            />
+            <div className="min-w-0">
+              <p className="font-semibold text-peach-fuzz truncate">
+                {nickname || 'No nickname yet'}
+              </p>
+              <p className="text-powder-blush text-sm truncate">{email || '—'}</p>
+            </div>
           </div>
+
+          {/* The input itself is unstyled everywhere, so it stays hidden and
+              the button drives it. */}
+          <input
+            ref={fileInput}
+            id="account-picture"
+            type="file"
+            accept={AVATAR_ACCEPT}
+            onChange={choosePicture}
+            className="sr-only"
+          />
+          <div className="flex gap-2 mt-4">
+            <button
+              type="button"
+              className={`${BTN} flex-1 py-2`}
+              disabled={pictureBusy}
+              onClick={() => fileInput.current?.click()}
+            >
+              {pictureBusy
+                ? 'Working…'
+                : avatarVersion
+                  ? 'Change picture'
+                  : 'Add a picture'}
+            </button>
+            {avatarVersion && (
+              <button
+                type="button"
+                className={`${BTN} py-2`}
+                disabled={pictureBusy}
+                onClick={removePicture}
+              >
+                Remove
+              </button>
+            )}
+          </div>
+          <p className="text-powder-blush/80 text-xs mt-2">
+            JPEG, PNG, WebP, or GIF, up to 5 MB. Only your circle sees it.
+          </p>
         </div>
 
         <form onSubmit={saveNick} className="space-y-3">

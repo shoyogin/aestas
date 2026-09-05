@@ -18,6 +18,12 @@ The table is defined in `backend/app/models.py` with **SQLAlchemy** (an ORM: we 
 
 We also have a property `has_completed_onboarding`: it is `True` when `cycle_length` is not `NULL`.
 
+Alongside `users` sit `daily_logs` (one row per user per day), `follow_requests`
+(see [08-circle-follows.md](08-circle-follows.md)), and `profile_pictures` —
+one avatar per account, kept out of `users` so the image bytes do not ride
+along on every query that loads a user (see
+[09-profile-pictures.md](09-profile-pictures.md)).
+
 Schema changes are handled by **Alembic migrations** in `backend/migrations/`, applied by `docker-entrypoint.sh` before the app starts serving. This used to be `Base.metadata.create_all()` plus a few hand-written `ALTER TABLE` helpers running at import time, which meant importing the app opened a database connection and several worker processes could race each other over the same DDL. `alembic check` in CI fails the build if the models and the migrations disagree.
 
 ## Onboarding flow

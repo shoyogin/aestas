@@ -14,5 +14,10 @@ alembic==1.13.1
 # Redis (sessions and rate limiting)
 redis==5.0.1
 
+# Profile pictures: multipart parsing, then decode + re-encode so nothing a
+# user uploads is ever served back byte-for-byte.
+python-multipart==0.0.9
+pillow==11.1.0
+
 # Config & env
 pydantic-settings==2.1.0

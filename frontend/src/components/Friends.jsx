@@ -1,14 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Logo from './Logo'
+import Avatar from './Avatar'
 import ErrorBanner from './ErrorBanner'
 import { getFollowing } from '../api/follows'
 import { errorMessage } from '../api/client'
-
-function initials(name) {
-  const s = (name || '?').replace(/^_/, '')
-  return s.slice(0, 2).toUpperCase()
-}
 
 export default function Friends() {
   const [friends, setFriends] = useState([])
@@ -63,9 +59,7 @@ export default function Friends() {
                 to={`/circle/${f.id}`}
                 className="w-full flex items-center gap-4 rounded-2xl border border-powder-blush/30 bg-dusty-mauve/15 px-4 py-3 text-left hover:bg-dusty-mauve/25 transition-colors"
               >
-                <span className="flex-shrink-0 w-12 h-12 rounded-full bg-burnt-rose text-peach-fuzz font-semibold flex items-center justify-center">
-                  {initials(f.nickname)}
-                </span>
+                <Avatar nickname={f.nickname} version={f.avatar_updated_at} />
                 <span className="flex-1 min-w-0">
                   <span className="block font-semibold text-peach-fuzz truncate">
                     {f.nickname || 'Unknown'}

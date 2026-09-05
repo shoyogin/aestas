@@ -266,8 +266,8 @@ def test_shared_view_never_leaks_dates_or_email(client, login, alice, bob):
     login(alice)
     body = client.get(f"/follows/{follow_id}/cycle").json()
     assert set(body) == {
-        "nickname", "link_type", "phase", "cycle_day", "phase_label",
-        "panels", "disclaimer",
+        "nickname", "link_type", "avatar_updated_at", "phase", "cycle_day",
+        "phase_label", "panels", "disclaimer",
     }
     assert "2026-03-01" not in str(body)
     assert "bob@example.com" not in str(body)

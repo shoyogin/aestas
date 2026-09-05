@@ -21,6 +21,9 @@ class MeResponse(BaseModel):
     timezone: str
     has_completed_onboarding: bool
     awaiting_period_end: bool
+    # None means "no profile picture". When set, it doubles as a cache key, so
+    # a newly uploaded picture replaces the one the browser already has.
+    avatar_updated_at: str | None = None
 
 
 class OkResponse(BaseModel):
@@ -66,6 +69,11 @@ class UpdateMeResponse(BaseModel):
 
 class UserSearchHit(BaseModel):
     nickname: str
+
+
+class AvatarResponse(BaseModel):
+    ok: bool = True
+    avatar_updated_at: str | None
 
 
 # ----- Daily logs -----
@@ -114,6 +122,10 @@ class FollowSummary(BaseModel):
     nickname: str | None
     created_at: str | None
     direction: str
+    # Whether the other side has an avatar, and which version of it. The bytes
+    # come from GET /users/{nickname}/avatar, which applies the same visibility
+    # rule that put this row in front of you.
+    avatar_updated_at: str | None = None
 
 
 class FollowWithPhase(FollowSummary):
@@ -125,6 +137,7 @@ class FollowWithPhase(FollowSummary):
 class SharedCycleResponse(BaseModel):
     nickname: str | None
     link_type: str
+    avatar_updated_at: str | None = None
     phase: str | None
     cycle_day: int | None
     phase_label: str | None

@@ -15,13 +15,14 @@ from httpx import HTTPError
 from sqlalchemy.orm import Session
 
 from app.auth import exchange_code_for_user, get_google_authorize_url
+from app.avatars import avatar_version
 from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.logging_config import configure_logging
 from app.models import User
 from app.ratelimit import rate_limit
-from app.routers import content, follows, health, users
+from app.routers import avatars, content, follows, health, users
 from app.schemas import MeResponse, OkResponse
 from app.session import SESSION_TTL, delete_session
 
@@ -147,6 +148,7 @@ async def auth_me(
         timezone=current_user.timezone,
         has_completed_onboarding=current_user.has_completed_onboarding,
         awaiting_period_end=bool(current_user.awaiting_period_end),
+        avatar_updated_at=avatar_version(current_user),
     )
 
 
@@ -160,6 +162,7 @@ async def auth_logout(request: Request):
 
 
 app.include_router(users.router, prefix="/users", tags=["users"])
+app.include_router(avatars.router, prefix="/users", tags=["avatars"])
 app.include_router(follows.router, prefix="/follows", tags=["follows"])
 app.include_router(content.router, prefix="/content", tags=["content"])
 app.include_router(health.router, tags=["health"])

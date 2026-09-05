@@ -8,12 +8,13 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     UniqueConstraint,
     text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import deferred, relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
@@ -51,6 +52,12 @@ class User(Base):
     daily_logs = relationship(
         "DailyLog", back_populates="user", cascade="all, delete-orphan"
     )
+    profile_picture = relationship(
+        "ProfilePicture",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
 
     __table_args__ = (
         Index(
@@ -64,6 +71,35 @@ class User(Base):
     @property
     def has_completed_onboarding(self) -> bool:
         return self.cycle_length is not None
+
+
+class ProfilePicture(Base):
+    """A user's avatar, already normalized by app.avatars.
+
+    Its own table rather than a column on `users`, because every request that
+    loads a User would otherwise drag a few tens of kilobytes of image along and
+    almost none of them want it; `data` is deferred on top of that, so even a
+    query against this table only pays for the bytes when something reads them.
+
+    Postgres holds the bytes because it is the only store in this stack that is
+    already persistent and already backed up — a file under the backend's
+    working directory would not survive the next container rebuild. Avatars are
+    capped at a few tens of KB each, which is well inside what a BYTEA column
+    (TOASTed out of the main row by Postgres) handles comfortably.
+    """
+
+    __tablename__ = "profile_pictures"
+
+    # The user *is* the key: one picture each, and deleting the user drops it.
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    content_type = Column(String(40), nullable=False)
+    data = deferred(Column(LargeBinary, nullable=False))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    user = relationship("User", back_populates="profile_picture")
 
 
 class DailyLog(Base):

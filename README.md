@@ -1,6 +1,6 @@
 # Aestas
 
-A modern cycle-tracking app: sign in with Google, set your cycle length, log period days, and see phase-based suggestions on the main calendar. Built with React/Vite/Tailwind (frontend), FastAPI (backend), PostgreSQL, and Redis, orchestrated with Docker Compose.
+A modern cycle-tracking app: sign in with Google, set your cycle length, log period days, add a profile picture, and see phase-based suggestions on the main calendar. Built with React/Vite/Tailwind (frontend), FastAPI (backend), PostgreSQL, and Redis, orchestrated with Docker Compose.
 
 ![Welcome screen](docs/assets/welcome.png)
 
@@ -73,6 +73,7 @@ Set through the environment (see `.env.example`):
 | `COOKIE_SECURE` | `false` | **Set to `true` anywhere served over HTTPS**, so the session cookie is not sent in the clear. |
 | `LOG_LEVEL` | `INFO` | |
 | `SESSION_TTL_DAYS` | `7` | |
+| `AVATAR_MAX_UPLOAD_BYTES` | `5242880` | Largest profile picture accepted, before it is re-encoded. |
 
 ## Health checks
 
@@ -91,6 +92,7 @@ All in **docs/**:
 6. [06-pre-commit.md](docs/06-pre-commit.md) — Pre-commit hooks and usage.
 7. [07-cycle-phases.md](docs/07-cycle-phases.md) — Four cycle phases and the dashboard under the calendar.
 8. [08-circle-follows.md](docs/08-circle-follows.md) — Nickname search, friend vs partner follows, privacy.
+9. [09-profile-pictures.md](docs/09-profile-pictures.md) — Avatar upload, normalization, and who can see it.
 
 ## Palette
 

@@ -12,6 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
+from app.avatars import avatar_version
 from app.config import settings
 from app.cycle_phase import get_phase_for_today
 from app.database import get_db
@@ -47,6 +48,7 @@ def _summary(row: FollowRequest, other: User | None, *, direction: str) -> Follo
         nickname=other.nickname if other else None,
         created_at=row.created_at.isoformat() if row.created_at else None,
         direction=direction,
+        avatar_updated_at=avatar_version(other),
     )
 
 
@@ -68,7 +70,10 @@ def _with_phase(row: FollowRequest, other: User | None) -> FollowWithPhase:
 def _get_row(db: Session, follow_id: int) -> FollowRequest:
     row = (
         db.query(FollowRequest)
-        .options(joinedload(FollowRequest.requester), joinedload(FollowRequest.target))
+        .options(
+            joinedload(FollowRequest.requester).joinedload(User.profile_picture),
+            joinedload(FollowRequest.target).joinedload(User.profile_picture),
+        )
         .filter(FollowRequest.id == follow_id)
         .first()
     )
@@ -140,7 +145,7 @@ def inbox(
     withdraws them instead, so nothing can get stuck invisible-but-blocking."""
     rows = (
         db.query(FollowRequest)
-        .options(joinedload(FollowRequest.requester))
+        .options(joinedload(FollowRequest.requester).joinedload(User.profile_picture))
         .filter(
             FollowRequest.target_id == current_user.id,
             FollowRequest.status == "pending",
@@ -159,7 +164,7 @@ def list_following(
     """People I follow, with the phase they have agreed to share."""
     rows = (
         db.query(FollowRequest)
-        .options(joinedload(FollowRequest.target))
+        .options(joinedload(FollowRequest.target).joinedload(User.profile_picture))
         .filter(
             FollowRequest.requester_id == current_user.id,
             FollowRequest.status == "accepted",
@@ -179,7 +184,7 @@ def list_outgoing_requests(
     cancel them (the only action available before the target accepts)."""
     rows = (
         db.query(FollowRequest)
-        .options(joinedload(FollowRequest.target))
+        .options(joinedload(FollowRequest.target).joinedload(User.profile_picture))
         .filter(
             FollowRequest.requester_id == current_user.id,
             FollowRequest.status == "pending",
@@ -198,7 +203,7 @@ def list_followers(
     """People who can see my phase, so access I granted can be taken back."""
     rows = (
         db.query(FollowRequest)
-        .options(joinedload(FollowRequest.requester))
+        .options(joinedload(FollowRequest.requester).joinedload(User.profile_picture))
         .filter(
             FollowRequest.target_id == current_user.id,
             FollowRequest.status == "accepted",
@@ -314,6 +319,7 @@ def shared_cycle(
     return SharedCycleResponse(
         nickname=target.nickname,
         link_type=row.link_type,
+        avatar_updated_at=avatar_version(target),
         phase=info["phase"],
         cycle_day=info["cycle_day"],
         phase_label=info["phase_label"],

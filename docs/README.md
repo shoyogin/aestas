@@ -10,5 +10,6 @@ Educational docs for the Aestas app. They assume basic familiarity with web apps
 6. **[06-pre-commit.md](06-pre-commit.md)** — Pre-commit hooks and how to use them.
 7. **[07-cycle-phases.md](07-cycle-phases.md)** — The four cycle phases, how a date becomes a phase, and the dashboard.
 8. **[08-circle-follows.md](08-circle-follows.md)** — Nicknames, friend vs partner follows, and what each one can see.
+9. **[09-profile-pictures.md](09-profile-pictures.md)** — Uploading an avatar, how it is normalized, and who can see it.
 
 Start with **01-overview-and-setup.md** if you’re new to the project.

@@ -84,7 +84,10 @@ def db(engine, _fake_redis):
     _fake_redis.store.clear()
     with engine.connect() as conn:
         conn.execute(
-            text("TRUNCATE follow_requests, daily_logs, users RESTART IDENTITY CASCADE")
+            text(
+                "TRUNCATE profile_pictures, follow_requests, daily_logs, users "
+                "RESTART IDENTITY CASCADE"
+            )
         )
         conn.commit()
     session = SessionLocal()
