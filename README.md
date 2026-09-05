@@ -2,7 +2,9 @@
 
 A modern cycle-tracking app: sign in with Google, set your cycle length, log period days, add a profile picture, and see phase-based suggestions on the main calendar. Built with React/Vite/Tailwind (frontend), FastAPI (backend), PostgreSQL, and Redis, orchestrated with Docker Compose.
 
-![Welcome screen](docs/assets/welcome.png)
+![A walkthrough of Aestas: signing in, today's phase, logging a period, phase guidance, profile pictures, and consent-based sharing](docs/assets/aestas-demo.gif)
+
+*Recorded from the running app. [Full-quality MP4](docs/assets/aestas-demo.mp4) · [still of the welcome screen](docs/assets/welcome.png)*
 
 
 ## Quick start
